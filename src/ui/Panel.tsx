@@ -5,7 +5,7 @@ import { NoteList } from './NoteList';
 import { NoteEditor } from './NoteEditor';
 import type { Video, Note } from '../shared/types';
 import { getVideo, upsertVideo } from '../shared/storage';
-import { putScreenshot, deleteScreenshot } from '../shared/idb';
+import { putScreenshot, deleteScreenshot } from '../content/idb-client';
 import { noteId, shotId } from '../shared/uuid';
 
 // 1×1 transparent PNG used when live screenshot capture fails.

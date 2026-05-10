@@ -2,6 +2,7 @@ import type { Message, CaptureTabResponse } from './messages';
 import { captureActiveTab } from './screenshot';
 import { sendTogglePanel } from './commands';
 import { refreshBadgeForTab } from './badge';
+import { isIdbMessage, handleIdbMessage } from './idb-bridge';
 
 chrome.runtime.onMessage.addListener((msg: Message, _sender, sendResponse) => {
   if (msg.type === 'capture-tab') {
@@ -9,6 +10,9 @@ chrome.runtime.onMessage.addListener((msg: Message, _sender, sendResponse) => {
       .then(dataUrl => sendResponse({ dataUrl } satisfies CaptureTabResponse))
       .catch(err => sendResponse({ error: String(err) }));
     return true; // keep port open for async response
+  }
+  if (isIdbMessage(msg)) {
+    return handleIdbMessage(msg, sendResponse);
   }
   return false;
 });
