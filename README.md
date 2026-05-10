@@ -46,3 +46,13 @@ E2E 預設跑 headed（看得到瀏覽器）。Playwright 的 Chromium 在 headl
 - 不支援 YouTube Shorts、直播、嵌入頁
 - 不擷取逐字稿；不做 AI 改寫
 - 沒有跨裝置同步；資料只存當前瀏覽器
+- 若 vault 在 OneDrive / Dropbox / iCloud 等雲端同步資料夾，孤兒截圖刪除可能因檔案鎖暫時失敗 — 匯出仍會完成，只是個別孤兒檔留著
+- 截圖若意外失敗（如 `activeTab` 未授權），筆記會用 1×1 透明 PNG 當 placeholder 存檔，使用者文字不會丟失。下次按面板上的 toolbar icon 開啟（重新授權 activeTab）後新增的筆記就能正常截圖
+
+## 疑難排解
+
+**匯出後 PNG 是空白或 1×1 像素？**
+
+- 確認**面板是用 toolbar icon 或 `Alt+N` 開啟的**（這樣 Chrome 才會授予 `activeTab` 權限給截圖 API）
+- 在 Options 頁按「**強制重新匯出全部**」會忽略上次匯出時間並覆蓋 `assets/` 內的所有 PNG
+- 若是升級擴充功能版本後出現舊資料相容問題，刪除影片重新寫筆記是最乾淨的解法
