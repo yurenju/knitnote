@@ -35,8 +35,10 @@ npm install            # 第一次
 npm run dev            # 開發模式（HMR；MV3 部分仍需到 chrome://extensions reload）
 npm run build          # 產生 dist/，到 chrome://extensions 載入未封裝
 npm test               # 單元測試
-npm run e2e            # Playwright E2E（先 build）
+npm run e2e            # Playwright E2E（先 build；headed 模式）
 ```
+
+E2E 預設跑 headed（看得到瀏覽器）。Playwright 的 Chromium 在 headless 模式下不會喚醒 MV3 service worker，所以擴充功能 E2E 一律 headed。
 
 ## 已知限制（V1）
 
