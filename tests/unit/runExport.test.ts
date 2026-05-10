@@ -3,7 +3,8 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { installChromeMock } from './_chrome-mock';
 import { FakeDir } from './_fs-mock';
 import { upsertVideo, getVideo } from '../../src/shared/storage';
-import { putScreenshot } from '../../src/shared/idb';
+import { putScreenshot, getDb } from '../../src/shared/idb';
+import { putTranscript } from '../../src/shared/transcript-store';
 import { runExportForVideo } from '../../src/options/export/runExport';
 import type { Video } from '../../src/shared/types';
 
@@ -64,5 +65,43 @@ describe('runExportForVideo', () => {
     const result = await runExportForVideo(root, 'abc123', { force: true });
     expect(result.skipped).toBe(false);
     expect(root.dirs.size).toBe(1);
+  });
+});
+
+describe('runExportForVideo with transcript', () => {
+  beforeEach(async () => {
+    mock.reset();
+    indexedDB.deleteDatabase('video-notes');
+    const db = await getDb();
+    await db.clear('transcripts');
+    await db.clear('screenshots');
+    await putScreenshot('s1', new Blob([new Uint8Array([1])], { type: 'image/png' }));
+  });
+
+  it('embeds <details> in note.md when transcript exists', async () => {
+    await upsertVideo(baseVideo());
+    await putTranscript({
+      videoId: 'abc123',
+      languageCode: 'en',
+      translationLanguage: 'zh-TW',
+      fetchedAt: '2026-05-10T00:00:00Z',
+      status: 'ok',
+      segments: [{ startSec: 220, durationSec: 4, text: 'context' }]
+    });
+    const root = new FakeDir('root') as any;
+    await runExportForVideo(root, 'abc123');
+    const folder = root.dirs.get('2026-05-10_Hello- World--');
+    const md: string = await folder.files.get('note.md').text();
+    expect(md).toContain('<details>');
+    expect(md).toContain('context');
+  });
+
+  it('omits <details> when no transcript exists', async () => {
+    await upsertVideo(baseVideo());
+    const root = new FakeDir('root') as any;
+    await runExportForVideo(root, 'abc123');
+    const folder = root.dirs.get('2026-05-10_Hello- World--');
+    const md: string = await folder.files.get('note.md').text();
+    expect(md).not.toContain('<details>');
   });
 });

@@ -1,4 +1,4 @@
-import { getVideo, upsertVideo } from '../../shared/storage';
+import { getVideo, upsertVideo, getSettings } from '../../shared/storage';
 import { sanitizeFilename } from '../../shared/sanitize';
 import { writeNoteMd } from './writeNoteMd';
 import { writeAssets } from './writeAssets';
@@ -39,7 +39,11 @@ export async function runExportForVideo(
   const folder = await vault.getDirectoryHandle(fname, { create: true });
   const now = new Date().toISOString();
 
-  await writeNoteMd(folder, video, now);
+  const settings = await getSettings();
+  await writeNoteMd(folder, video, now, {
+    beforeSec: settings.transcriptBeforeSec,
+    afterSec: settings.transcriptAfterSec
+  });
   await writeAssets(folder, video.notes, { force: options.force });
 
   await upsertVideo({ ...video, lastExportedAt: now });
