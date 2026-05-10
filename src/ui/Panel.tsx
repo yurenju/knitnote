@@ -52,28 +52,50 @@ export function Panel({ videoId, getVideoMeta, getCurrentSec, pauseVideo, seekVi
   };
 
   const saveNew = async (text: string, sec: number) => {
+    // Optimistic UI: snap back to the list immediately so the user does
+    // not wait for screenshot capture + IDB writes (~200–500ms). Add a
+    // placeholder note so the list reflects the new entry instantly; we
+    // swap in the real screenshotKey when persistence finishes.
     const meta = getVideoMeta();
-    // If screenshot capture fails (e.g. activeTab permission not granted,
-    // canvas tainted, video element gone), still save the note with a
-    // 1×1 transparent PNG placeholder so the user does not lose their text.
-    let blob: Blob;
-    try {
-      blob = await captureScreenshot();
-    } catch (err) {
-      console.warn('[video-notes] screenshot failed, using placeholder:', err);
-      blob = PLACEHOLDER_PNG_BLOB();
-    }
-    const sk = shotId();
-    await putScreenshot(sk, blob);
     const now = new Date().toISOString();
-    const note: Note = { id: noteId(), timestampSec: sec, text, createdAt: now, updatedAt: now, screenshotKey: sk };
-    const existing = await getVideo(videoId);
-    const updated: Video = existing
-      ? { ...existing, lastModifiedAt: now, notes: [...existing.notes, note] }
-      : { videoId, title: meta.title, channel: meta.channel, url: meta.url, firstNoteAt: now, lastModifiedAt: now, lastExportedAt: null, notes: [note] };
-    await upsertVideo(updated);
-    setVideo(updated);
+    const noteIdValue = noteId();
+    const tempNote: Note = {
+      id: noteIdValue,
+      timestampSec: sec,
+      text,
+      createdAt: now,
+      updatedAt: now,
+      screenshotKey: '__pending__'
+    };
+    const baseline = video;
+    const optimistic: Video = baseline
+      ? { ...baseline, lastModifiedAt: now, notes: [...baseline.notes, tempNote] }
+      : { videoId, title: meta.title, channel: meta.channel, url: meta.url, firstNoteAt: now, lastModifiedAt: now, lastExportedAt: null, notes: [tempNote] };
+    setVideo(optimistic);
     setMode({ kind: 'list' });
+
+    try {
+      let blob: Blob;
+      try {
+        blob = await captureScreenshot();
+      } catch (err) {
+        console.warn('[video-notes] screenshot failed, using placeholder:', err);
+        blob = PLACEHOLDER_PNG_BLOB();
+      }
+      const sk = shotId();
+      await putScreenshot(sk, blob);
+      const finalNote: Note = { ...tempNote, screenshotKey: sk };
+      // Re-read storage in case other tabs / the same tab raced.
+      const fresh = await getVideo(videoId);
+      const merged: Video = fresh
+        ? { ...fresh, lastModifiedAt: now, notes: [...fresh.notes.filter(n => n.id !== noteIdValue), finalNote] }
+        : { ...optimistic, notes: [finalNote] };
+      await upsertVideo(merged);
+      setVideo(merged);
+    } catch (err) {
+      console.error('[video-notes] save failed, rolling back:', err);
+      setVideo(baseline);
+    }
   };
 
   const saveEdit = async (text: string) => {
