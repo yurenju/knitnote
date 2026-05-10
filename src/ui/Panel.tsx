@@ -8,6 +8,14 @@ import { getVideo, upsertVideo } from '../shared/storage';
 import { putScreenshot, deleteScreenshot } from '../shared/idb';
 import { noteId, shotId } from '../shared/uuid';
 
+// 1×1 transparent PNG used when live screenshot capture fails.
+const PLACEHOLDER_PNG_BYTES = Uint8Array.from(atob(
+  'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkAAIAAAoAAv/lxKUAAAAASUVORK5CYII='
+), c => c.charCodeAt(0));
+function PLACEHOLDER_PNG_BLOB(): Blob {
+  return new Blob([PLACEHOLDER_PNG_BYTES], { type: 'image/png' });
+}
+
 export interface PanelDeps {
   videoId: string;
   getVideoMeta: () => { title: string; channel: string; url: string };
@@ -45,7 +53,16 @@ export function Panel({ videoId, getVideoMeta, getCurrentSec, pauseVideo, seekVi
 
   const saveNew = async (text: string, sec: number) => {
     const meta = getVideoMeta();
-    const blob = await captureScreenshot();
+    // If screenshot capture fails (e.g. activeTab permission not granted,
+    // canvas tainted, video element gone), still save the note with a
+    // 1×1 transparent PNG placeholder so the user does not lose their text.
+    let blob: Blob;
+    try {
+      blob = await captureScreenshot();
+    } catch (err) {
+      console.warn('[video-notes] screenshot failed, using placeholder:', err);
+      blob = PLACEHOLDER_PNG_BLOB();
+    }
     const sk = shotId();
     await putScreenshot(sk, blob);
     const now = new Date().toISOString();
