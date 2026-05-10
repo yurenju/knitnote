@@ -1,4 +1,6 @@
 import type { Video, Note } from './types';
+import type { TranscriptRecord } from './transcript';
+import { sliceWindow } from './transcript';
 import { formatColon, formatDash } from './timestamp';
 
 function yamlValue(v: string): string {
@@ -10,7 +12,27 @@ function blockquote(text: string): string {
   return text.split('\n').map(l => '> ' + l).join('\n');
 }
 
-export function renderNoteMd(video: Video, exportedAtIso: string): string {
+function formatShort(totalSec: number): string {
+  const s = Math.floor(totalSec);
+  const hh = Math.floor(s / 3600);
+  const mm = Math.floor((s % 3600) / 60);
+  const ss = s % 60;
+  const pad = (n: number) => n.toString().padStart(2, '0');
+  if (hh > 0) return `${pad(hh)}:${pad(mm)}:${pad(ss)}`;
+  return `${pad(mm)}:${pad(ss)}`;
+}
+
+export interface RenderTranscriptOpts {
+  beforeSec: number;
+  afterSec: number;
+}
+
+export function renderNoteMd(
+  video: Video,
+  exportedAtIso: string,
+  transcripts: Record<string, TranscriptRecord> = {},
+  transcriptOpts: RenderTranscriptOpts = { beforeSec: 20, afterSec: 20 }
+): string {
   const sorted: Note[] = [...video.notes].sort((a, b) => a.timestampSec - b.timestampSec);
   const lines: string[] = [];
   lines.push('---');
@@ -28,6 +50,8 @@ export function renderNoteMd(video: Video, exportedAtIso: string): string {
   lines.push('來源：[YouTube](' + video.url + ')');
   lines.push('頻道：' + video.channel);
   lines.push('');
+
+  const tr = transcripts[video.videoId];
   for (const n of sorted) {
     const ts = formatColon(n.timestampSec);
     const tsDash = formatDash(n.timestampSec);
@@ -37,8 +61,38 @@ export function renderNoteMd(video: Video, exportedAtIso: string): string {
     lines.push('');
     lines.push(`![](assets/${tsDash}.png)`);
     lines.push('');
+
+    const detailsBlock = renderTranscriptDetails(tr, n.timestampSec, transcriptOpts);
+    if (detailsBlock) {
+      lines.push(detailsBlock);
+      lines.push('');
+    }
+
     lines.push(blockquote(n.text));
     lines.push('');
   }
   return lines.join('\n');
+}
+
+function renderTranscriptDetails(
+  tr: TranscriptRecord | undefined,
+  centerSec: number,
+  opts: RenderTranscriptOpts
+): string | null {
+  if (!tr || tr.status !== 'ok' || tr.segments.length === 0) return null;
+  const sliced = sliceWindow(tr.segments, centerSec, opts.beforeSec, opts.afterSec);
+  if (sliced.segments.length === 0 || sliced.alignedStartSec === null || sliced.alignedEndSec === null) {
+    return null;
+  }
+  const lang = tr.translationLanguage ?? tr.languageCode;
+  const start = formatShort(sliced.alignedStartSec);
+  const end = formatShort(sliced.alignedEndSec);
+  const body = sliced.segments.map(s => s.text).join(' ').trim();
+  return [
+    `<details><summary>逐字稿 ${start} – ${end}（${lang}）</summary>`,
+    '',
+    body,
+    '',
+    '</details>'
+  ].join('\n');
 }
