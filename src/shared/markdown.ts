@@ -12,15 +12,6 @@ function blockquote(text: string): string {
   return text.split('\n').map(l => '> ' + l).join('\n');
 }
 
-function formatShort(totalSec: number): string {
-  const s = Math.floor(totalSec);
-  const hh = Math.floor(s / 3600);
-  const mm = Math.floor((s % 3600) / 60);
-  const ss = s % 60;
-  const pad = (n: number) => n.toString().padStart(2, '0');
-  if (hh > 0) return `${pad(hh)}:${pad(mm)}:${pad(ss)}`;
-  return `${pad(mm)}:${pad(ss)}`;
-}
 
 export interface RenderTranscriptOpts {
   beforeSec: number;
@@ -85,8 +76,8 @@ function renderTranscriptDetails(
     return null;
   }
   const lang = tr.translationLanguage ?? tr.languageCode;
-  const start = formatShort(sliced.alignedStartSec);
-  const end = formatShort(sliced.alignedEndSec);
+  const start = formatColon(sliced.alignedStartSec);
+  const end = formatColon(sliced.alignedEndSec);
   const body = sliced.segments.map(s => s.text).join(' ').trim();
   return [
     `<details><summary>逐字稿 ${start} – ${end}（${lang}）</summary>`,

@@ -48,7 +48,7 @@ describe('renderNoteMd with transcript', () => {
 
   it('summary shows aligned range and language', () => {
     const md = renderNoteMd(video, '2026-05-10T01:00:00Z', { abc: transcript }, { beforeSec: 20, afterSec: 20 });
-    expect(md).toContain('<summary>逐字稿 02:50 – 03:17（zh-TW）</summary>');
+    expect(md).toContain('<summary>逐字稿 00:02:50 – 00:03:17（zh-TW）</summary>');
   });
 
   it('uses languageCode in summary when no translation', () => {
