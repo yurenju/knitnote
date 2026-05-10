@@ -27,3 +27,20 @@ YouTube 雖然已經提供逐字稿，但被動閱讀逐字稿並不會真正內
 
 - Chrome Extension（Manifest V3）
 - 目標平台：YouTube
+
+## 開發指令
+
+```bash
+npm install            # 第一次
+npm run dev            # 開發模式（HMR；MV3 部分仍需到 chrome://extensions reload）
+npm run build          # 產生 dist/，到 chrome://extensions 載入未封裝
+npm test               # 單元測試
+npm run e2e            # Playwright E2E（先 build）
+```
+
+## 已知限制（V1）
+
+- 截圖時若 YouTube 正在播廣告，會截到廣告畫面（V1 不偵測廣告）
+- 不支援 YouTube Shorts、直播、嵌入頁
+- 不擷取逐字稿；不做 AI 改寫
+- 沒有跨裝置同步；資料只存當前瀏覽器
