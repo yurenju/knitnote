@@ -1,5 +1,6 @@
 // src/content/index.ts
 import { watchYouTubeNavigation, findVideoElement } from './yt-navigation';
+import { mountPanel, unmountPanel, isPanelMounted } from './panel-host';
 
 let currentVideoId: string | null = null;
 
@@ -11,8 +12,9 @@ watchYouTubeNavigation((videoId) => {
 
 chrome.runtime.onMessage.addListener((msg) => {
   if (msg.type === 'toggle-panel') {
-    console.log('[video-notes] toggle-panel; current video:', currentVideoId);
-    // Panel toggle logic in Task 14
+    if (!currentVideoId) return;
+    if (isPanelMounted()) unmountPanel();
+    else mountPanel(currentVideoId);
   }
 });
 
