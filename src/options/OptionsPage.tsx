@@ -4,6 +4,7 @@ import { getSettings } from '../shared/storage';
 import { applyThemeClass, watchSystemTheme } from '../ui/theme';
 import { VaultSection } from './VaultSection';
 import { ThemeSection } from './ThemeSection';
+import { TranscriptSection } from './TranscriptSection';
 import { VideoList } from './VideoList';
 import type { Theme } from '../shared/types';
 
@@ -25,6 +26,7 @@ export function OptionsPage() {
       <h1>Video Notes — 設定</h1>
       <VaultSection />
       <ThemeSection onChange={(t: Theme) => applyThemeClass(document.body, t)} />
+      <TranscriptSection />
       <VideoList />
     </div>
   );
