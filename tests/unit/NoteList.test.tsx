@@ -1,3 +1,4 @@
+// @vitest-environment happy-dom
 import '@testing-library/preact';
 import { render, cleanup } from '@testing-library/preact';
 import { describe, it, expect, vi, afterEach } from 'vitest';

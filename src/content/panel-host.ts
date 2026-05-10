@@ -1,9 +1,11 @@
 // src/content/panel-host.ts
 import { render, h } from 'preact';
-import { Panel } from '../ui/Panel';
+import { Panel, type PanelDeps } from '../ui/Panel';
 import { applyThemeClass } from '../ui/theme';
 import { getSettings } from '../shared/storage';
 import panelCss from '../ui/panel.css?raw';
+import { findVideoElement } from './yt-navigation';
+import { captureAndCrop } from './screenshot-client';
 
 const HOST_ID = 'video-notes-panel-host';
 
@@ -18,25 +20,34 @@ export async function mountPanel(videoId: string): Promise<void> {
   }
   const shadow = host.shadowRoot ?? host.attachShadow({ mode: 'open' });
   shadow.innerHTML = '';
-
   const styleEl = document.createElement('style');
   styleEl.textContent = panelCss;
   shadow.appendChild(styleEl);
-
   const root = document.createElement('div');
   shadow.appendChild(root);
 
   const settings = await getSettings();
   applyThemeClass(host, settings.theme);
 
-  const onClose = () => unmountPanel();
-  render(h(Panel, { videoId, onClose }), root);
+  const deps: PanelDeps = {
+    videoId,
+    getVideoMeta: () => ({
+      title: document.querySelector('h1.ytd-watch-metadata yt-formatted-string')?.textContent?.trim() ?? document.title.replace(/ - YouTube$/, ''),
+      channel: document.querySelector('ytd-channel-name #text a')?.textContent?.trim() ?? '',
+      url: location.href
+    }),
+    getCurrentSec: () => findVideoElement()?.currentTime ?? 0,
+    pauseVideo: () => { const v = findVideoElement(); if (v && !v.paused) v.pause(); },
+    seekVideo: (sec) => { const v = findVideoElement(); if (v) v.currentTime = sec; },
+    captureScreenshot: () => captureAndCrop(),
+    onClose: () => unmountPanel()
+  };
+
+  render(h(Panel, deps), root);
 }
 
 export function unmountPanel(): void {
   document.getElementById(HOST_ID)?.remove();
 }
 
-export function isPanelMounted(): boolean {
-  return !!document.getElementById(HOST_ID);
-}
+export function isPanelMounted(): boolean { return !!document.getElementById(HOST_ID); }
