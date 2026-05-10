@@ -1,3 +1,5 @@
+// src/options/index.tsx
 import { render } from 'preact';
-
-render(<div>Video Notes Options</div>, document.getElementById('root')!);
+import { OptionsPage } from './OptionsPage';
+import './options.css';
+render(<OptionsPage />, document.getElementById('root')!);
