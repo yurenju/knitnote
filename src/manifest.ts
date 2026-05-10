@@ -11,6 +11,12 @@ export default {
       matches: ['https://www.youtube.com/*'],
       js: ['src/content/index.ts'],
       run_at: 'document_idle'
+    },
+    {
+      matches: ['https://www.youtube.com/*'],
+      js: ['src/content/main-world-interceptor.ts'],
+      run_at: 'document_start',
+      world: 'MAIN'
     }
   ],
   permissions: ['activeTab', 'tabs', 'storage'],

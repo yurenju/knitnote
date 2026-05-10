@@ -1,4 +1,5 @@
 // src/content/index.ts
+import './transcript-cache';
 import { watchYouTubeNavigation, findVideoElement } from './yt-navigation';
 import { mountPanel, unmountPanel, isPanelMounted } from './panel-host';
 

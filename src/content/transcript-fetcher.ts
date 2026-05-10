@@ -18,7 +18,7 @@ export interface PickedTrack {
   translationLanguage: string | null;
 }
 
-function langAliases(lang: string): string[] {
+export function langAliases(lang: string): string[] {
   // Returns acceptable language codes to try, in priority order.
   // Maps common BCP-47 region tags to YouTube's script-tag equivalents.
   const ALIAS_MAP: Record<string, string[]> = {

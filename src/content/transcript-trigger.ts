@@ -1,20 +1,15 @@
-import {
-  extractTracklistFromDocument,
-  pickTrackUrl,
-  fetchSegments
-} from './transcript-fetcher';
+import { parseJson3, type TranscriptSegment, type TranscriptRecord } from '../shared/transcript';
 import { putTranscriptViaSw } from './transcript-client';
-import type { TranscriptRecord } from '../shared/transcript';
 import { getSettings } from '../shared/storage';
+import { langAliases } from './transcript-fetcher';
+import { getCapturedBaseUrl } from './transcript-cache';
 
 export function ensureTranscript(videoId: string): void {
   void (async () => {
     try {
-      const settings = await getSettings();
-      const tracklist = extractTracklistFromDocument(document);
-      const picked = pickTrackUrl(tracklist, settings.transcriptPreferredLang);
       const now = new Date().toISOString();
-      if (!picked) {
+      const baseUrl = getCapturedBaseUrl(videoId);
+      if (!baseUrl) {
         await putTranscriptViaSw({
           videoId,
           languageCode: '',
@@ -25,30 +20,48 @@ export function ensureTranscript(videoId: string): void {
         });
         return;
       }
-      let segments;
-      try {
-        segments = await fetchSegments(picked.url);
-      } catch (e) {
-        console.warn('[video-notes] transcript fetch failed:', e);
-        await putTranscriptViaSw({
+      const settings = await getSettings();
+      const sourceLang = new URL(baseUrl).searchParams.get('lang') || 'en';
+      const aliases = langAliases(settings.transcriptPreferredLang);
+
+      for (const alias of aliases) {
+        const tryUrl = new URL(baseUrl);
+        let translationLang: string | null = null;
+        if (alias !== sourceLang) {
+          tryUrl.searchParams.set('tlang', alias);
+          translationLang = alias;
+        }
+        let segments: TranscriptSegment[] = [];
+        try {
+          const res = await fetch(tryUrl.toString());
+          if (!res.ok) continue;
+          const json = await res.json();
+          segments = parseJson3(json);
+        } catch (e) {
+          console.warn('[video-notes] transcript fetch failed:', e);
+          continue;
+        }
+        if (segments.length === 0) continue;
+        const rec: TranscriptRecord = {
           videoId,
-          languageCode: picked.languageCode,
-          translationLanguage: picked.translationLanguage,
+          languageCode: sourceLang,
+          translationLanguage: translationLang,
           fetchedAt: now,
-          status: 'unavailable',
-          segments: []
-        });
+          status: 'ok',
+          segments
+        };
+        await putTranscriptViaSw(rec);
         return;
       }
-      const rec: TranscriptRecord = {
+
+      await putTranscriptViaSw({
         videoId,
-        languageCode: picked.languageCode,
-        translationLanguage: picked.translationLanguage,
+        languageCode: sourceLang,
+        translationLanguage: null,
         fetchedAt: now,
-        status: segments.length > 0 ? 'ok' : 'unavailable',
-        segments
-      };
-      await putTranscriptViaSw(rec);
+        status: 'unavailable',
+        segments: []
+      });
     } catch (e) {
       console.warn('[video-notes] ensureTranscript error:', e);
     }
