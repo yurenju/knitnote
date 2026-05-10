@@ -1,13 +1,15 @@
 // src/content/panel-host.ts
 import { render, h } from 'preact';
 import { Panel, type PanelDeps } from '../ui/Panel';
-import { applyThemeClass } from '../ui/theme';
+import { applyThemeClass, watchSystemTheme } from '../ui/theme';
 import { getSettings } from '../shared/storage';
 import panelCss from '../ui/panel.css?raw';
 import { findVideoElement } from './yt-navigation';
 import { captureAndCrop } from './screenshot-client';
 
 const HOST_ID = 'video-notes-panel-host';
+
+let stopThemeWatch: (() => void) | null = null;
 
 export async function mountPanel(videoId: string): Promise<void> {
   const target = document.querySelector('#secondary') ?? document.body;
@@ -29,6 +31,12 @@ export async function mountPanel(videoId: string): Promise<void> {
   const settings = await getSettings();
   applyThemeClass(host, settings.theme);
 
+  stopThemeWatch?.();
+  stopThemeWatch = watchSystemTheme(async () => {
+    const s = await getSettings();
+    applyThemeClass(host!, s.theme);
+  });
+
   const deps: PanelDeps = {
     videoId,
     getVideoMeta: () => ({
@@ -47,6 +55,8 @@ export async function mountPanel(videoId: string): Promise<void> {
 }
 
 export function unmountPanel(): void {
+  stopThemeWatch?.();
+  stopThemeWatch = null;
   document.getElementById(HOST_ID)?.remove();
 }
 
