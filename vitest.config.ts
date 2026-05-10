@@ -5,6 +5,7 @@ export default defineConfig({
   plugins: [preact()],
   test: {
     globals: false,
-    environment: 'node'
+    environment: 'node',
+    exclude: ['tests/e2e/**', 'node_modules/**', 'dist/**']
   }
 });

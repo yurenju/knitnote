@@ -1,5 +1,5 @@
 // src/content/yt-navigation.ts
-import { videoIdFromUrl } from '../background/badge';
+import { videoIdFromUrl } from '../shared/youtube';
 
 export type NavCallback = (videoId: string | null) => void;
 
