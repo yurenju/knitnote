@@ -1,0 +1,12 @@
+{
+  "browser": {
+    "browserName": "chromium",
+    "launchOptions": {
+      "headless": false,
+      "args": [
+        "--disable-extensions-except=C:/Users/yuren/Documents/30-resources/src/video-notes/dist",
+        "--load-extension=C:/Users/yuren/Documents/30-resources/src/video-notes/dist"
+      ]
+    }
+  }
+}

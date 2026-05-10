@@ -5,4 +5,5 @@ dist/
 .DS_Store
 test-results/
 .claude/
-.playwright-cli/
+.playwright-cli/*
+!.playwright-cli/config.json
