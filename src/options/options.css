@@ -1,0 +1,4 @@
+/* src/options/options.css */
+@import '../ui/panel.css';
+body { margin: 0; }
+.options-root { background: var(--vn-bg); color: var(--vn-fg); min-height: 100vh; }

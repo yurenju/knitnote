@@ -1,0 +1,37 @@
+{
+  "name": "video-notes",
+  "version": "1.0.0",
+  "description": "一個 Chrome Extension，協助使用者在觀看 YouTube 影片時，以卡片盒筆記法（Zettelkasten）的精神做筆記。",
+  "main": "index.js",
+  "directories": {
+    "doc": "docs"
+  },
+  "scripts": {
+    "test": "vitest run",
+    "dev": "vite",
+    "build": "vite build",
+    "test:watch": "vitest",
+    "e2e": "playwright test"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "module",
+  "dependencies": {
+    "idb": "^8.0.3",
+    "preact": "^10.29.1"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.59.1",
+    "@preact/preset-vite": "^2.10.5",
+    "@testing-library/preact": "^3.2.4",
+    "@types/chrome": "^0.1.42",
+    "@types/node": "^25.6.2",
+    "fake-indexeddb": "^6.2.5",
+    "happy-dom": "^20.9.0",
+    "typescript": "^6.0.3",
+    "vite": "^8.0.11",
+    "vite-plugin-web-extension": "^4.5.1",
+    "vitest": "^4.1.5"
+  }
+}
