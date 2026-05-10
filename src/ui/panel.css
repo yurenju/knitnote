@@ -1,0 +1,35 @@
+/* src/ui/panel.css */
+:host, .options-root {
+  --vn-bg: #ffffff;
+  --vn-bg-elevated: #f5f5f5;
+  --vn-fg: #1a1a1a;
+  --vn-fg-muted: #666;
+  --vn-accent: #6a4dff;
+  --vn-accent-fg: #fff;
+  --vn-border: #e0e0e0;
+  --vn-danger: #d33;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+  color: var(--vn-fg);
+  background: var(--vn-bg);
+}
+:host(.theme-dark), .options-root.theme-dark {
+  --vn-bg: #1a1a1a;
+  --vn-bg-elevated: #2a2238;
+  --vn-fg: #ddd;
+  --vn-fg-muted: #999;
+  --vn-accent: #b09dff;
+  --vn-accent-fg: #1a1525;
+  --vn-border: #333;
+}
+.vn-panel { display: flex; flex-direction: column; padding: 12px; gap: 8px; }
+.vn-panel-header { display: flex; justify-content: space-between; align-items: center; padding-bottom: 8px; border-bottom: 1px solid var(--vn-border); }
+.vn-empty { display:flex; flex-direction:column; align-items:center; padding: 24px 12px; color: var(--vn-fg-muted); text-align:center; }
+.vn-note { background: var(--vn-bg-elevated); border-radius: 4px; padding: 8px; margin-bottom: 6px; }
+.vn-note-ts { color: var(--vn-accent); font-weight: 600; cursor: pointer; }
+.vn-note-text { white-space: pre-wrap; margin-top: 4px; }
+.vn-note-actions { display:none; gap: 8px; margin-top: 6px; }
+.vn-note:hover .vn-note-actions { display: flex; }
+.vn-btn-primary { background: var(--vn-accent); color: var(--vn-accent-fg); border: 0; padding: 6px 10px; border-radius: 4px; cursor: pointer; }
+.vn-btn-secondary { background: transparent; color: var(--vn-fg); border: 1px solid var(--vn-border); padding: 6px 10px; border-radius: 4px; cursor: pointer; }
+.vn-input { background: var(--vn-bg); color: var(--vn-fg); border: 1px solid var(--vn-border); border-radius: 4px; padding: 6px; width: 100%; min-height: 60px; resize: vertical; font-family: inherit; }
+.vn-add { width: 100%; padding: 8px; background: var(--vn-accent); color: var(--vn-accent-fg); border: 0; border-radius: 4px; cursor: pointer; }
