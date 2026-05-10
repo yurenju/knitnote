@@ -45,7 +45,17 @@ export async function mountPanel(videoId: string): Promise<void> {
       url: location.href
     }),
     getCurrentSec: () => findVideoElement()?.currentTime ?? 0,
-    pauseVideo: () => { const v = findVideoElement(); if (v && !v.paused) v.pause(); },
+    pauseVideo: () => {
+      const v = findVideoElement();
+      if (v && !v.paused) { v.pause(); return true; }
+      return false;
+    },
+    playVideo: () => {
+      const v = findVideoElement();
+      // play() returns a promise that may reject if blocked by autoplay
+      // policy or interrupted by another pause; swallow it.
+      v?.play().catch(() => {});
+    },
     seekVideo: (sec) => { const v = findVideoElement(); if (v) v.currentTime = sec; },
     captureScreenshot: () => captureAndCrop(),
     onClose: () => unmountPanel()

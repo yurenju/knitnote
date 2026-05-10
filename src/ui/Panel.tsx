@@ -1,5 +1,5 @@
 // src/ui/Panel.tsx
-import { useEffect, useState, useCallback } from 'preact/hooks';
+import { useEffect, useState, useCallback, useRef } from 'preact/hooks';
 import { EmptyState } from './EmptyState';
 import { NoteList } from './NoteList';
 import { NoteEditor } from './NoteEditor';
@@ -20,7 +20,9 @@ export interface PanelDeps {
   videoId: string;
   getVideoMeta: () => { title: string; channel: string; url: string };
   getCurrentSec: () => number;
-  pauseVideo: () => void;
+  /** Pause the video if it is playing. Returns true when a pause was actually applied. */
+  pauseVideo: () => boolean;
+  playVideo: () => void;
   seekVideo: (sec: number) => void;
   captureScreenshot: () => Promise<Blob>;
   onClose: () => void;
@@ -28,9 +30,13 @@ export interface PanelDeps {
 
 type Mode = { kind: 'list' } | { kind: 'new' } | { kind: 'edit'; id: string };
 
-export function Panel({ videoId, getVideoMeta, getCurrentSec, pauseVideo, seekVideo, captureScreenshot, onClose }: PanelDeps) {
+export function Panel({ videoId, getVideoMeta, getCurrentSec, pauseVideo, playVideo, seekVideo, captureScreenshot, onClose }: PanelDeps) {
   const [video, setVideo] = useState<Video | null>(null);
   const [mode, setMode] = useState<Mode>({ kind: 'list' });
+  // True when we paused the video on entering 'new' mode (so we resume
+  // afterwards). False when the video was already paused — the user
+  // intentionally paused it, leave it alone.
+  const wasPlayingRef = useRef(false);
 
   const load = useCallback(async () => {
     const v = await getVideo(videoId);
@@ -47,8 +53,14 @@ export function Panel({ videoId, getVideoMeta, getCurrentSec, pauseVideo, seekVi
   }, [load]);
 
   const startNew = () => {
-    pauseVideo();
+    wasPlayingRef.current = pauseVideo();
     setMode({ kind: 'new' });
+  };
+
+  const cancelNew = () => {
+    if (wasPlayingRef.current) playVideo();
+    wasPlayingRef.current = false;
+    setMode({ kind: 'list' });
   };
 
   const saveNew = async (text: string, sec: number) => {
@@ -56,6 +68,8 @@ export function Panel({ videoId, getVideoMeta, getCurrentSec, pauseVideo, seekVi
     // not wait for screenshot capture + IDB writes (~200–500ms). Add a
     // placeholder note so the list reflects the new entry instantly; we
     // swap in the real screenshotKey when persistence finishes.
+    const wasPlaying = wasPlayingRef.current;
+    wasPlayingRef.current = false;
     const meta = getVideoMeta();
     const now = new Date().toISOString();
     const noteIdValue = noteId();
@@ -82,6 +96,9 @@ export function Panel({ videoId, getVideoMeta, getCurrentSec, pauseVideo, seekVi
         console.warn('[video-notes] screenshot failed, using placeholder:', err);
         blob = PLACEHOLDER_PNG_BLOB();
       }
+      // Pixels are now locked into the canvas-derived Blob. Resume
+      // playback (if we paused) before the slower persistence work runs.
+      if (wasPlaying) playVideo();
       const sk = shotId();
       await putScreenshot(sk, blob);
       const finalNote: Note = { ...tempNote, screenshotKey: sk };
@@ -140,7 +157,7 @@ export function Panel({ videoId, getVideoMeta, getCurrentSec, pauseVideo, seekVi
       </div>
 
       {mode.kind === 'new' && (
-        <NoteEditor getCurrentSec={getCurrentSec} onSave={saveNew} onCancel={() => setMode({ kind: 'list' })} />
+        <NoteEditor getCurrentSec={getCurrentSec} onSave={saveNew} onCancel={cancelNew} />
       )}
 
       {mode.kind === 'edit' && video && (() => {
