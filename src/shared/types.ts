@@ -38,6 +38,7 @@ function defaultTranscriptLang(): string {
   const lang = navigator.language;
   if (lang === 'zh-TW' || lang === 'zh-HK' || lang === 'zh-Hant') return 'zh-Hant';
   if (lang === 'zh-CN' || lang === 'zh-SG' || lang === 'zh-Hans' || lang === 'zh') return 'zh-Hans';
+  if (lang === 'ja' || lang.startsWith('ja-')) return 'ja';
   return 'en';
 }
 
