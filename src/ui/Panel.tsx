@@ -29,7 +29,14 @@ export function Panel({ videoId, getVideoMeta, getCurrentSec, pauseVideo, seekVi
     setVideo(v ?? null);
   }, [videoId]);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => {
+    load();
+    const listener = (changes: Record<string, chrome.storage.StorageChange>, area: string) => {
+      if (area === 'local' && changes.videos) load();
+    };
+    chrome.storage.onChanged.addListener(listener);
+    return () => chrome.storage.onChanged.removeListener(listener);
+  }, [load]);
 
   const startNew = () => {
     pauseVideo();
