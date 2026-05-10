@@ -1,16 +1,21 @@
 import { openDB, IDBPDatabase } from 'idb';
 
 const DB_NAME = 'video-notes';
-const DB_VERSION = 1;
+const DB_VERSION = 2;
 
 let dbPromise: Promise<IDBPDatabase> | null = null;
 
-function getDb(): Promise<IDBPDatabase> {
+export function getDb(): Promise<IDBPDatabase> {
   if (!dbPromise) {
     dbPromise = openDB(DB_NAME, DB_VERSION, {
-      upgrade(db) {
-        if (!db.objectStoreNames.contains('screenshots')) db.createObjectStore('screenshots');
-        if (!db.objectStoreNames.contains('meta')) db.createObjectStore('meta');
+      upgrade(db, oldVersion) {
+        if (oldVersion < 1) {
+          db.createObjectStore('screenshots');
+          db.createObjectStore('meta');
+        }
+        if (oldVersion < 2) {
+          db.createObjectStore('transcripts');
+        }
       }
     });
   }
