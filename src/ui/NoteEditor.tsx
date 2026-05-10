@@ -31,9 +31,6 @@ export function NoteEditor({ initialText = '', getCurrentSec, onSave, onCancel }
     if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
       e.preventDefault();
       tryCommit();
-    } else if (e.key === 'Escape') {
-      e.preventDefault();
-      onCancel();
     }
   };
 
