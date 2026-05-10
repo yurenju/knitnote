@@ -59,4 +59,44 @@ describe('extractTracklistFromHtml', () => {
     const html = `<script>var ytInitialPlayerResponse = {};var x = 1;</script>`;
     expect(extractTracklistFromHtml(html)).toBeNull();
   });
+
+  it('parses ytInitialPlayerResponse when followed by an IIFE (real YouTube pattern)', () => {
+    const html = `<script>var ytInitialPlayerResponse = {"captions":{"playerCaptionsTracklistRenderer":{"captionTracks":[{"baseUrl":"https://x/","languageCode":"en"}],"translationLanguages":[{"languageCode":"zh-Hant"}]}}};(function(){var a=1;})();</script>`;
+    const r = extractTracklistFromHtml(html);
+    expect(r?.captionTracks[0].languageCode).toBe('en');
+    expect(r?.translationLanguages[0].languageCode).toBe('zh-Hant');
+  });
+
+  it('handles strings containing braces', () => {
+    const html = `<script>var ytInitialPlayerResponse = {"a":"}{","captions":{"playerCaptionsTracklistRenderer":{"captionTracks":[{"baseUrl":"u","languageCode":"en"}],"translationLanguages":[]}}};</script>`;
+    const r = extractTracklistFromHtml(html);
+    expect(r?.captionTracks[0].languageCode).toBe('en');
+  });
+});
+
+describe('pickTrackUrl with language aliases', () => {
+  const tl = {
+    captionTracks: [{ baseUrl: 'https://yt/api/timedtext?v=x&lang=en', languageCode: 'en' }],
+    translationLanguages: [{ languageCode: 'zh-Hant' }, { languageCode: 'zh-Hans' }]
+  };
+
+  it('maps zh-TW to zh-Hant in translationLanguages', () => {
+    const r = pickTrackUrl(tl, 'zh-TW');
+    expect(r?.url).toBe('https://yt/api/timedtext?v=x&lang=en&tlang=zh-Hant&fmt=json3');
+    expect(r?.translationLanguage).toBe('zh-Hant');
+  });
+
+  it('maps zh-CN to zh-Hans', () => {
+    const r = pickTrackUrl(tl, 'zh-CN');
+    expect(r?.translationLanguage).toBe('zh-Hans');
+  });
+
+  it('falls back to primary subtag for unknown regions', () => {
+    const tl2 = {
+      captionTracks: [{ baseUrl: 'u', languageCode: 'en' }],
+      translationLanguages: [{ languageCode: 'fr' }]
+    };
+    const r = pickTrackUrl(tl2, 'fr-CA');
+    expect(r?.translationLanguage).toBe('fr');
+  });
 });

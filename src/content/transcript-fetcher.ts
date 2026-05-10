@@ -18,23 +18,49 @@ export interface PickedTrack {
   translationLanguage: string | null;
 }
 
+function langAliases(lang: string): string[] {
+  // Returns acceptable language codes to try, in priority order.
+  // Maps common BCP-47 region tags to YouTube's script-tag equivalents.
+  const ALIAS_MAP: Record<string, string[]> = {
+    'zh-TW': ['zh-TW', 'zh-Hant', 'zh'],
+    'zh-HK': ['zh-HK', 'zh-Hant', 'zh'],
+    'zh-Hant': ['zh-Hant', 'zh-TW', 'zh'],
+    'zh-CN': ['zh-CN', 'zh-Hans', 'zh'],
+    'zh-SG': ['zh-SG', 'zh-Hans', 'zh'],
+    'zh-Hans': ['zh-Hans', 'zh-CN', 'zh']
+  };
+  if (ALIAS_MAP[lang]) return ALIAS_MAP[lang];
+  // Default: try the exact code, then strip region/script subtag
+  const primary = lang.split('-')[0];
+  return primary !== lang ? [lang, primary] : [lang];
+}
+
 export function pickTrackUrl(tl: Tracklist | null, preferredLang: string): PickedTrack | null {
   if (!tl || !tl.captionTracks || tl.captionTracks.length === 0) return null;
-  const native = tl.captionTracks.find(t => t.languageCode === preferredLang);
-  if (native) {
-    return {
-      url: appendParam(native.baseUrl, 'fmt', 'json3'),
-      languageCode: native.languageCode,
-      translationLanguage: null
-    };
+  const aliases = langAliases(preferredLang);
+
+  // Native track match (try aliases in priority order)
+  for (const alias of aliases) {
+    const native = tl.captionTracks.find(t => t.languageCode === alias);
+    if (native) {
+      return {
+        url: appendParam(native.baseUrl, 'fmt', 'json3'),
+        languageCode: native.languageCode,
+        translationLanguage: null
+      };
+    }
   }
-  const translatable = (tl.translationLanguages ?? []).some(l => l.languageCode === preferredLang);
-  if (!translatable) return null;
+
+  // Translation: pick first alias that's in translationLanguages
+  const translationCodes = new Set((tl.translationLanguages ?? []).map(l => l.languageCode));
+  const matched = aliases.find(a => translationCodes.has(a));
+  if (!matched) return null;
+
   const base = tl.captionTracks[0];
   return {
-    url: appendParam(appendParam(base.baseUrl, 'tlang', preferredLang), 'fmt', 'json3'),
+    url: appendParam(appendParam(base.baseUrl, 'tlang', matched), 'fmt', 'json3'),
     languageCode: base.languageCode,
-    translationLanguage: preferredLang
+    translationLanguage: matched
   };
 }
 
@@ -43,22 +69,46 @@ function appendParam(url: string, key: string, value: string): string {
   return `${url}${sep}${key}=${encodeURIComponent(value)}`;
 }
 
-const RE_PLAYER_RESPONSE = /var\s+ytInitialPlayerResponse\s*=\s*(\{[\s\S]*?\})\s*;\s*(?:var\s|<\/script>)/;
+function extractPlayerResponseJson(html: string): unknown {
+  const MARK = 'ytInitialPlayerResponse';
+  const eqIdx = html.indexOf(MARK);
+  if (eqIdx === -1) return null;
+  // Find first '{' after the marker
+  const braceStart = html.indexOf('{', eqIdx);
+  if (braceStart === -1) return null;
+  // Walk char-by-char tracking brace depth + string state (handle escapes)
+  let depth = 0;
+  let inString = false;
+  let escape = false;
+  for (let i = braceStart; i < html.length; i++) {
+    const ch = html[i];
+    if (escape) { escape = false; continue; }
+    if (inString) {
+      if (ch === '\\') { escape = true; continue; }
+      if (ch === '"') inString = false;
+      continue;
+    }
+    if (ch === '"') { inString = true; continue; }
+    if (ch === '{') depth++;
+    else if (ch === '}') {
+      depth--;
+      if (depth === 0) {
+        try { return JSON.parse(html.slice(braceStart, i + 1)); } catch { return null; }
+      }
+    }
+  }
+  return null;
+}
 
 export function extractTracklistFromHtml(html: string): Tracklist | null {
-  const m = html.match(RE_PLAYER_RESPONSE);
-  if (!m) return null;
-  try {
-    const obj = JSON.parse(m[1]);
-    const tl = obj?.captions?.playerCaptionsTracklistRenderer;
-    if (!tl) return null;
-    return {
-      captionTracks: tl.captionTracks ?? [],
-      translationLanguages: tl.translationLanguages ?? []
-    };
-  } catch {
-    return null;
-  }
+  const obj: any = extractPlayerResponseJson(html);
+  if (!obj) return null;
+  const tl = obj?.captions?.playerCaptionsTracklistRenderer;
+  if (!tl) return null;
+  return {
+    captionTracks: tl.captionTracks ?? [],
+    translationLanguages: tl.translationLanguages ?? []
+  };
 }
 
 export function extractTracklistFromDocument(doc: Document): Tracklist | null {
