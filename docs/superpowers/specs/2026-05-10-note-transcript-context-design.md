@@ -41,20 +41,23 @@ status: draft
 
 ### 1. 逐字稿來源：A'（hook player config）
 
-在 content script 裡讀 `ytInitialPlayerResponse.captions.playerCaptionsTracklistRenderer`，可以拿到：
+從 watch page 的 `<script>` 區塊解析 `ytInitialPlayerResponse`（content script 在 ISOLATED world，無法直接讀 `window.ytInitialPlayerResponse`，但可以掃 DOM 裡帶有 `var ytInitialPlayerResponse =` 的 `<script>` 文字內容）。
+
+從中拿到 `playerCaptionsTracklistRenderer`：
 
 - `captionTracks[]`：每條原生字幕軌（`baseUrl`, `languageCode`, `name`, `kind`, `vssId`）
 - `translationLanguages[]`：可翻譯目標語言清單
 
-決定要拉哪一條的演算法：
+決定要拉哪一條的演算法（V1 不偵測 player runtime 狀態，一律用 Options 的偏好語言）：
 
-1. 從 player 拿目前字幕設定：`player.getOption('captions', 'track')` 回傳 `{ languageCode, translationLanguage? }`
-2. 從 `captionTracks[]` 找 `languageCode` 對應的 `baseUrl`
-3. 若使用者有設 `translationLanguage`（自動翻譯），在 `baseUrl` 加 `&tlang=<code>&fmt=json3`
-4. 若使用者**沒開字幕**，用 Options 頁的「偏好逐字稿語言」設定（預設與瀏覽器 UI 語言一致）作 fallback；找原生軌（若有匹配）或對 `captionTracks[0]` 加 `tlang`
-5. 上述都失敗 → 標記為「逐字稿不可用」
+1. 取 Options 設定 `transcriptPreferredLang`（例 `zh-TW`）
+2. 若 `captionTracks[]` 有 `languageCode === preferredLang` 的條目 → 用該 `baseUrl`，加 `&fmt=json3`
+3. 否則挑 `captionTracks[0]`（通常是原生），檢查 `preferredLang` 是否在 `translationLanguages[].languageCode` 裡 → 在的話用 `baseUrl + &tlang=<preferredLang>&fmt=json3`
+4. 上述都失敗 → 標記 `status: 'unavailable'`
 
-`baseUrl` 已經帶有所有必要簽章參數（`pot`, `c`, `cver` 等），直接 `fetch()` 即可。
+`baseUrl` 已經帶簽章參數（`pot`, `c`, `cver` 等），直接 `fetch()` 即可。
+
+> 註：「跟著使用者目前 YouTube 字幕設定走」這個目標，V1 用 Options 的明確偏好語言取代「偵測 player 當下選的字幕」。原因：讀 player runtime 狀態需注入 MAIN-world script + 雙向 messaging，複雜度不划算；明確設定也更穩定（使用者切過字幕語言不會讓不同筆記的逐字稿語言不一致）。
 
 ### 2. 拉取時機
 
