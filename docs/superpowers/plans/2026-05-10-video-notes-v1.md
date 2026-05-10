@@ -2575,6 +2575,8 @@ npm run e2e
 
 預期：spec 通過。瀏覽器開 YouTube、面板出現、筆記寫入。
 
+**遇到不穩定時：** 如果連續 flaky（例如 selector 找不到、超時、廣告或 cookie consent 擋路），**不要逕自修 selector 或加重試**。改成 headed 模式（在 `playwright.config.ts` 把 `headless` 設 `false` 或改用 `HEADED=1` 環境變數），暫停執行並請使用者一起在瀏覽器看畫面釐清原因，再決定怎麼處理。
+
 - [ ] **步驟 5：commit**
 
 ```bash
