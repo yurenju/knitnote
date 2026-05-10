@@ -19,6 +19,30 @@ export interface SlicedWindow {
   alignedEndSec: number | null;
 }
 
+interface Json3Event {
+  tStartMs?: number;
+  dDurationMs?: number;
+  segs?: Array<{ utf8?: string }>;
+}
+
+export function parseJson3(json: unknown): TranscriptSegment[] {
+  if (!json || typeof json !== 'object') return [];
+  const events = (json as { events?: Json3Event[] }).events;
+  if (!Array.isArray(events)) return [];
+  const out: TranscriptSegment[] = [];
+  for (const ev of events) {
+    if (!ev.segs || ev.segs.length === 0) continue;
+    const text = ev.segs.map(s => s.utf8 ?? '').join('').replace(/\n/g, ' ').trim();
+    if (!text) continue;
+    out.push({
+      startSec: (ev.tStartMs ?? 0) / 1000,
+      durationSec: (ev.dDurationMs ?? 0) / 1000,
+      text
+    });
+  }
+  return out;
+}
+
 export function sliceWindow(
   segs: TranscriptSegment[],
   centerSec: number,

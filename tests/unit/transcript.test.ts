@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { sliceWindow, type TranscriptRecord, type TranscriptSegment } from '../../src/shared/transcript';
+import { sliceWindow, parseJson3, type TranscriptRecord, type TranscriptSegment } from '../../src/shared/transcript';
 
 describe('transcript types', () => {
   it('TranscriptRecord shape compiles and accepts ok / unavailable', () => {
@@ -54,5 +54,37 @@ describe('sliceWindow', () => {
   it('clamps negative window start to 0', () => {
     const r = sliceWindow(segs, 1, 30, 1);
     expect(r.segments[0].text).toBe('a');
+  });
+});
+
+describe('parseJson3', () => {
+  it('extracts events with segs into TranscriptSegments', () => {
+    const json = {
+      events: [
+        { tStartMs: 0, dDurationMs: 1500, segs: [{ utf8: 'Hello' }, { utf8: ' world' }] },
+        { tStartMs: 1500, dDurationMs: 0 },
+        { tStartMs: 2000, dDurationMs: 1000, segs: [{ utf8: 'next' }] }
+      ]
+    };
+    const r = parseJson3(json);
+    expect(r).toEqual([
+      { startSec: 0, durationSec: 1.5, text: 'Hello world' },
+      { startSec: 2, durationSec: 1, text: 'next' }
+    ]);
+  });
+
+  it('normalizes newlines inside segs to spaces', () => {
+    const json = { events: [{ tStartMs: 0, dDurationMs: 1000, segs: [{ utf8: 'line1\nline2' }] }] };
+    expect(parseJson3(json)[0].text).toBe('line1 line2');
+  });
+
+  it('skips events with empty utf8 segs', () => {
+    const json = { events: [{ tStartMs: 0, dDurationMs: 1000, segs: [{ utf8: '' }] }] };
+    expect(parseJson3(json)).toEqual([]);
+  });
+
+  it('returns [] on missing events', () => {
+    expect(parseJson3({})).toEqual([]);
+    expect(parseJson3(null)).toEqual([]);
   });
 });
