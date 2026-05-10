@@ -33,11 +33,18 @@ export interface StorageShape {
   settings: Settings;
 }
 
+function defaultTranscriptLang(): string {
+  if (typeof navigator === 'undefined') return 'en';
+  const lang = navigator.language;
+  if (lang === 'zh-TW' || lang === 'zh-HK' || lang === 'zh-Hant') return 'zh-Hant';
+  if (lang === 'zh-CN' || lang === 'zh-SG' || lang === 'zh-Hans' || lang === 'zh') return 'zh-Hans';
+  return 'en';
+}
+
 export const DEFAULT_SETTINGS: Settings = {
   theme: 'system',
   hasVaultConfigured: false,
   transcriptBeforeSec: 20,
   transcriptAfterSec: 20,
-  transcriptPreferredLang:
-    (typeof navigator !== 'undefined' && navigator.language) || 'en'
+  transcriptPreferredLang: defaultTranscriptLang()
 };

@@ -1,6 +1,16 @@
 // src/options/TranscriptSection.tsx
 import { useEffect, useState } from 'preact/hooks';
 import { getSettings, setSettings } from '../shared/storage';
+import { TRANSCRIPT_LANG_OPTIONS } from '../shared/lang-options';
+
+const VALID = new Set(TRANSCRIPT_LANG_OPTIONS.map(o => o.code));
+
+function normalizeLang(v: string): string {
+  if (VALID.has(v)) return v;
+  if (v === 'zh-TW' || v === 'zh-HK') return 'zh-Hant';
+  if (v === 'zh-CN' || v === 'zh-SG' || v === 'zh') return 'zh-Hans';
+  return 'en';
+}
 
 export function TranscriptSection() {
   const [before, setBefore] = useState(20);
@@ -8,17 +18,25 @@ export function TranscriptSection() {
   const [lang, setLang] = useState('en');
 
   useEffect(() => {
-    getSettings().then(s => {
+    (async () => {
+      const s = await getSettings();
       setBefore(s.transcriptBeforeSec);
       setAfter(s.transcriptAfterSec);
-      setLang(s.transcriptPreferredLang);
-    });
+      const normalized = normalizeLang(s.transcriptPreferredLang);
+      setLang(normalized);
+      if (normalized !== s.transcriptPreferredLang) {
+        await setSettings({ ...s, transcriptPreferredLang: normalized });
+      }
+    })();
   }, []);
 
   const save = async (patch: Partial<{ transcriptBeforeSec: number; transcriptAfterSec: number; transcriptPreferredLang: string }>) => {
     const s = await getSettings();
     await setSettings({ ...s, ...patch });
   };
+
+  const clamp = (n: number, lo: number, hi: number) =>
+    Number.isNaN(n) ? lo : Math.min(hi, Math.max(lo, n));
 
   const onBefore = (v: string) => {
     const n = clamp(parseInt(v, 10), 1, 300);
@@ -49,18 +67,16 @@ export function TranscriptSection() {
           onInput={e => onAfter((e.target as HTMLInputElement).value)} />
       </label>
       <label style="display:block; margin: 8px 0;">
-        偏好語言（BCP-47，例如 zh-TW、en、ja）：
-        <input type="text" value={lang}
-          onInput={e => onLang((e.target as HTMLInputElement).value.trim())} />
+        偏好語言：
+        <select value={lang} onChange={e => onLang((e.target as HTMLSelectElement).value)}>
+          {TRANSCRIPT_LANG_OPTIONS.map(o => (
+            <option key={o.code} value={o.code}>{o.label}</option>
+          ))}
+        </select>
       </label>
       <p style="color: var(--muted-fg); font-size: 12px;">
-        匯出時，在每條筆記下附上前後 N 秒的逐字稿。語言用於沒有原生軌時觸發 YouTube 自動翻譯。
+        匯出時在每條筆記下附上前後 N 秒的逐字稿。需先在影片中啟用 CC 字幕，擴充功能才能擷取逐字稿（player 帶 PoToken 的請求會被攔截重用）。
       </p>
     </section>
   );
-}
-
-function clamp(n: number, lo: number, hi: number): number {
-  if (Number.isNaN(n)) return lo;
-  return Math.min(hi, Math.max(lo, n));
 }

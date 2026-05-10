@@ -2,6 +2,7 @@
   const origFetch = window.fetch;
   if ((window as any).__videoNotesFetchHooked) return;
   (window as any).__videoNotesFetchHooked = true;
+  console.log('[video-notes] main-world fetch hook installed');
 
   window.fetch = function (...args: Parameters<typeof origFetch>) {
     const promise = origFetch.apply(this, args);
@@ -17,6 +18,7 @@
             { type: 'video-notes:tt-base', videoId: v, baseUrl: u.toString() },
             location.origin
           );
+          console.log('[video-notes] captured timedtext base URL for video', v);
         }
       }
     } catch (_) {}

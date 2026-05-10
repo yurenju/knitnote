@@ -7,6 +7,7 @@ if (typeof window !== 'undefined') {
     if (!data || data.type !== 'video-notes:tt-base') return;
     if (typeof data.videoId !== 'string' || typeof data.baseUrl !== 'string') return;
     cache.set(data.videoId, data.baseUrl);
+    console.log('[video-notes] cached timedtext base for', data.videoId);
   });
 }
 

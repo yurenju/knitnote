@@ -7,9 +7,11 @@ import { getCapturedBaseUrl } from './transcript-cache';
 export function ensureTranscript(videoId: string): void {
   void (async () => {
     try {
+      console.log('[video-notes] ensureTranscript start for', videoId);
       const now = new Date().toISOString();
       const baseUrl = getCapturedBaseUrl(videoId);
       if (!baseUrl) {
+        console.log('[video-notes] no captured baseUrl for', videoId, '— captions must be enabled before writing notes');
         await putTranscriptViaSw({
           videoId,
           languageCode: '',
@@ -37,6 +39,7 @@ export function ensureTranscript(videoId: string): void {
           if (!res.ok) continue;
           const json = await res.json();
           segments = parseJson3(json);
+          console.log('[video-notes] tlang=' + (translationLang ?? '(native)') + ' → ' + segments.length + ' segments');
         } catch (e) {
           console.warn('[video-notes] transcript fetch failed:', e);
           continue;
@@ -51,6 +54,7 @@ export function ensureTranscript(videoId: string): void {
           segments
         };
         await putTranscriptViaSw(rec);
+        console.log('[video-notes] transcript saved:', rec.status, 'segments=' + rec.segments.length, 'lang=' + rec.languageCode, 'tlang=' + (rec.translationLanguage ?? '(native)'));
         return;
       }
 
