@@ -23,6 +23,9 @@ export type Theme = 'system' | 'light' | 'dark';
 export interface Settings {
   theme: Theme;
   hasVaultConfigured: boolean;
+  transcriptBeforeSec: number;
+  transcriptAfterSec: number;
+  transcriptPreferredLang: string;   // BCP-47, e.g. "zh-TW"
 }
 
 export interface StorageShape {
@@ -30,4 +33,11 @@ export interface StorageShape {
   settings: Settings;
 }
 
-export const DEFAULT_SETTINGS: Settings = { theme: 'system', hasVaultConfigured: false };
+export const DEFAULT_SETTINGS: Settings = {
+  theme: 'system',
+  hasVaultConfigured: false,
+  transcriptBeforeSec: 20,
+  transcriptAfterSec: 20,
+  transcriptPreferredLang:
+    (typeof navigator !== 'undefined' && navigator.language) || 'en'
+};

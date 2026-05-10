@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { installChromeMock } from './_chrome-mock';
 import { getAllVideos, getVideo, upsertVideo, deleteVideo, getSettings, setSettings } from '../../src/shared/storage';
 import type { Video } from '../../src/shared/types';
+import { DEFAULT_SETTINGS } from '../../src/shared/types';
 
 const mock = installChromeMock();
 
@@ -39,7 +40,25 @@ describe('storage', () => {
   });
 
   it('setSettings persists', async () => {
-    await setSettings({ theme: 'dark', hasVaultConfigured: true });
-    expect(await getSettings()).toEqual({ theme: 'dark', hasVaultConfigured: true });
+    const full = {
+      theme: 'dark' as const,
+      hasVaultConfigured: true,
+      transcriptBeforeSec: 30,
+      transcriptAfterSec: 15,
+      transcriptPreferredLang: 'zh-TW'
+    };
+    await setSettings(full);
+    expect(await getSettings()).toEqual(full);
+  });
+});
+
+describe('DEFAULT_SETTINGS for transcript', () => {
+  it('has transcriptBeforeSec=20, transcriptAfterSec=20', () => {
+    expect(DEFAULT_SETTINGS.transcriptBeforeSec).toBe(20);
+    expect(DEFAULT_SETTINGS.transcriptAfterSec).toBe(20);
+  });
+  it('has transcriptPreferredLang as a non-empty string', () => {
+    expect(typeof DEFAULT_SETTINGS.transcriptPreferredLang).toBe('string');
+    expect(DEFAULT_SETTINGS.transcriptPreferredLang.length).toBeGreaterThan(0);
   });
 });
