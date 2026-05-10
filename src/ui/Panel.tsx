@@ -84,8 +84,17 @@ export function Panel({ videoId, getVideoMeta, getCurrentSec, pauseVideo, seekVi
     setVideo(updated);
   };
 
+  // Stop keyboard events from bubbling out of the panel into YouTube's
+  // global hotkey handlers (t, k, f, j/l, space, etc.).
+  const swallow = (e: Event) => e.stopPropagation();
+
   return (
-    <div class="vn-panel">
+    <div
+      class="vn-panel"
+      onKeyDown={swallow}
+      onKeyUp={swallow}
+      onKeyPress={swallow}
+    >
       <div class="vn-panel-header">
         <strong>📝 {video && video.notes.length > 0 ? `${video.notes.length} 條筆記` : 'Video Notes'}</strong>
         <button class="vn-btn-secondary" onClick={onClose}>✕</button>
