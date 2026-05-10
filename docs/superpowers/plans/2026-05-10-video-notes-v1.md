@@ -1,66 +1,66 @@
-# Video Notes V1 Implementation Plan
+# Video Notes V1 實作計畫
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **給 agentic worker：** 必要的 sub-skill 是 superpowers:subagent-driven-development（建議）或 superpowers:executing-plans，逐 task 執行。每個步驟用 checkbox（`- [ ]`）追蹤狀態。
 
-**Goal:** Ship a Chrome MV3 extension that lets the user take time-stamped notes with auto screenshots on YouTube watch pages and export them as Markdown literature notes to a chosen local vault folder.
+**目標：** 實作 Chrome MV3 擴充功能，讓使用者在 YouTube 觀看頁面對特定時間戳寫筆記、自動截圖，並把結果匯出為符合卡片盒精神的 Markdown 文獻筆記到使用者授權的本機 vault 資料夾。
 
-**Architecture:** Preact panel injected via Shadow DOM into `youtube.com/watch?v=*`. Service worker handles screenshots and toolbar/badge. Options page handles File System Access API export. Storage split: chrome.storage.local for note metadata, IndexedDB for screenshot Blobs and the persisted vault directory handle.
+**架構：** Preact 面板透過 Shadow DOM 注入 `youtube.com/watch?v=*`。Service worker 處理截圖與 toolbar / badge。Options page 透過 File System Access API 寫檔。儲存切兩層：chrome.storage.local 放筆記 metadata，IndexedDB 放截圖 Blob 與已授權的 vault directory handle。
 
-**Tech Stack:** TypeScript, Preact + Vite (`vite-plugin-web-extension`), `idb` for IndexedDB, Vitest for unit tests with `fake-indexeddb`, Playwright for extension E2E.
+**技術棧：** TypeScript、Preact + Vite（`vite-plugin-web-extension`）、`idb` 操作 IndexedDB、Vitest + `fake-indexeddb` 跑單元測試、Playwright 跑擴充功能 E2E。
 
-**Spec:** `docs/superpowers/specs/2026-05-10-video-notes-v1-design.md` — read before starting.
+**Spec：** [docs/superpowers/specs/2026-05-10-video-notes-v1-design.md](../specs/2026-05-10-video-notes-v1-design.md) — 動工前先讀過。
 
 ---
 
-## File Structure
+## 檔案結構
 
-Source files (created across tasks):
+跨 task 會建立的原始碼檔案：
 
 ```
-package.json                          # npm scripts, deps
+package.json                          # npm scripts 與依賴
 tsconfig.json
-vite.config.ts                        # vite-plugin-web-extension config
+vite.config.ts                        # vite-plugin-web-extension 設定
 src/
-  manifest.ts                         # MV3 manifest as TS object
+  manifest.ts                         # MV3 manifest 寫成 TS object
   background/
-    index.ts                          # service worker entry
+    index.ts                          # service worker 入口
     screenshot.ts                     # captureVisibleTab handler
-    badge.ts                          # toolbar badge updater
-    commands.ts                       # toggle-panel command + icon click
+    badge.ts                          # toolbar badge 更新
+    commands.ts                       # toggle-panel 指令 + icon click
   content/
-    index.ts                          # content script entry — detect video, mount panel
-    yt-navigation.ts                  # SPA navigation detection
-    panel-host.ts                     # Shadow DOM host, mount/unmount Preact
-    screenshot-client.ts              # request SW screenshot, crop in canvas
+    index.ts                          # content script 入口、偵測 video、掛面板
+    yt-navigation.ts                  # SPA navigation 偵測
+    panel-host.ts                     # Shadow DOM host、掛/卸 Preact
+    screenshot-client.ts              # 請 SW 截圖、用 canvas 裁切
   ui/
-    Panel.tsx                         # root panel component (states: empty/list/editing)
+    Panel.tsx                         # 面板根元件（空狀態 / 列表 / 編輯三模式）
     EmptyState.tsx
     NoteList.tsx
-    NoteCard.tsx                      # display one note (with hover edit/delete)
-    NoteEditor.tsx                    # inline edit/new card
-    theme.ts                          # CSS variable tokens + theme detection
-    panel.css                         # base panel styles
+    NoteCard.tsx                      # 單條筆記顯示（hover 顯示 編輯/刪除）
+    NoteEditor.tsx                    # inline 新增/編輯卡片
+    theme.ts                          # CSS 變數 token + theme 偵測
+    panel.css                         # 面板基礎樣式
   options/
-    index.html                        # options page entry
-    index.tsx                         # mount root
-    OptionsPage.tsx                   # root component
-    VaultSection.tsx                  # vault display + change
+    index.html                        # options page 入口
+    index.tsx                         # 掛 root
+    OptionsPage.tsx                   # 根元件
+    VaultSection.tsx                  # vault 顯示 + 變更
     ThemeSection.tsx
     VideoList.tsx
     VideoRow.tsx
     export/
-      runExport.ts                    # orchestrate single export
-      writeNoteMd.ts                  # write/overwrite note.md
-      writeAssets.ts                  # incremental asset writes + cleanup
-      ensureVault.ts                  # ensure handle + permission
+      runExport.ts                    # 單支匯出協調流程
+      writeNoteMd.ts                  # 寫/覆寫 note.md
+      writeAssets.ts                  # 增量寫 assets + 清理孤兒檔
+      ensureVault.ts                  # 確保 handle 存在且有權限
   shared/
-    types.ts                          # Video, Note, Settings types
-    storage.ts                        # chrome.storage.local wrapper
-    idb.ts                            # IndexedDB wrapper (screenshots, vaultHandle)
-    sanitize.ts                       # filename sanitization
-    timestamp.ts                      # seconds <-> HH:MM:SS / HH-MM-SS
-    markdown.ts                       # render note.md content
-    uuid.ts                           # crypto.randomUUID wrapper
+    types.ts                          # Video / Note / Settings 等型別
+    storage.ts                        # chrome.storage.local 包裝
+    idb.ts                            # IndexedDB 包裝（screenshots、vaultHandle）
+    sanitize.ts                       # 檔名 sanitization
+    timestamp.ts                      # 秒數 <-> HH:MM:SS / HH-MM-SS
+    markdown.ts                       # 產生 note.md 內容
+    uuid.ts                           # crypto.randomUUID 包裝
 tests/
   unit/
     sanitize.test.ts
@@ -71,35 +71,35 @@ tests/
     runExport.test.ts
     writeAssets.test.ts
   e2e/
-    fixtures.ts                       # Playwright extension fixture
+    fixtures.ts                       # Playwright 擴充功能 fixture
     add-note.spec.ts
     export.spec.ts
 ```
 
-Each file has one responsibility; UI components stay small. `shared/` is pure logic with no Chrome / DOM APIs — fully unit-testable.
+每個檔案職責單一；UI 元件保持小檔。`shared/` 是純邏輯，不依賴 Chrome / DOM API，全部可單元測試。
 
 ---
 
-## Task 1: Project scaffold (Vite + Preact + TS + MV3 manifest)
+## 任務 1：專案 scaffold（Vite + Preact + TS + MV3 manifest）
 
-**Files:**
-- Create: `package.json`, `tsconfig.json`, `vite.config.ts`, `src/manifest.ts`, `src/background/index.ts`, `src/content/index.ts`, `src/options/index.html`, `src/options/index.tsx`, `.gitignore` (already exists, append)
-- Create: `public/icon-16.png`, `public/icon-48.png`, `public/icon-128.png` (placeholder)
+**檔案：**
+- 新增：`package.json`、`tsconfig.json`、`vite.config.ts`、`src/manifest.ts`、`src/background/index.ts`、`src/content/index.ts`、`src/options/index.html`、`src/options/index.tsx`
+- 新增：`public/icon-16.png`、`public/icon-48.png`、`public/icon-128.png`（placeholder）
 
-- [ ] **Step 1: Initialize package**
+- [ ] **步驟 1：初始化 npm 專案**
 
 ```bash
 npm init -y
 ```
 
-- [ ] **Step 2: Install runtime + dev deps using npm CLI (latest versions, never hand-write versions in package.json)**
+- [ ] **步驟 2：用 npm CLI 安裝最新版套件（不要手寫 package.json 版本號）**
 
 ```bash
 npm install preact idb
 npm install -D typescript vite vite-plugin-web-extension @types/chrome @preact/preset-vite @testing-library/preact vitest fake-indexeddb @playwright/test happy-dom
 ```
 
-- [ ] **Step 3: Write `tsconfig.json`**
+- [ ] **步驟 3：寫 `tsconfig.json`**
 
 ```json
 {
@@ -121,11 +121,9 @@ npm install -D typescript vite vite-plugin-web-extension @types/chrome @preact/p
 }
 ```
 
-- [ ] **Step 4: Write `src/manifest.ts`**
+- [ ] **步驟 4：寫 `src/manifest.ts`**
 
 ```ts
-import type { Manifest } from 'webextension-polyfill';
-
 export default {
   manifest_version: 3,
   name: 'Video Notes',
@@ -153,7 +151,7 @@ export default {
 } satisfies chrome.runtime.ManifestV3;
 ```
 
-- [ ] **Step 5: Write `vite.config.ts`**
+- [ ] **步驟 5：寫 `vite.config.ts`**
 
 ```ts
 import { defineConfig } from 'vite';
@@ -173,19 +171,19 @@ export default defineConfig({
 });
 ```
 
-- [ ] **Step 6: Write minimal stub entry files**
+- [ ] **步驟 6：寫最小 stub 入口檔**
 
-`src/background/index.ts`:
+`src/background/index.ts`：
 ```ts
 console.log('[video-notes] service worker boot');
 ```
 
-`src/content/index.ts`:
+`src/content/index.ts`：
 ```ts
 console.log('[video-notes] content script boot');
 ```
 
-`src/options/index.html`:
+`src/options/index.html`：
 ```html
 <!doctype html>
 <html>
@@ -194,13 +192,13 @@ console.log('[video-notes] content script boot');
 </html>
 ```
 
-`src/options/index.tsx`:
+`src/options/index.tsx`：
 ```ts
 import { render } from 'preact';
 render(<div>Video Notes Options</div>, document.getElementById('root')!);
 ```
 
-- [ ] **Step 7: Add npm scripts to `package.json`**
+- [ ] **步驟 7：在 `package.json` 加入 npm scripts**
 
 ```json
 {
@@ -214,21 +212,21 @@ render(<div>Video Notes Options</div>, document.getElementById('root')!);
 }
 ```
 
-- [ ] **Step 8: Create placeholder icons (any 1×1 transparent PNG works for now)**
+- [ ] **步驟 8：建立 placeholder icon（任意 1×1 透明 PNG 即可）**
 
 ```bash
 node -e "const fs=require('fs');const buf=Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkAAIAAAoAAv/lxKUAAAAASUVORK5CYII=','base64');fs.mkdirSync('public',{recursive:true});['icon-16.png','icon-48.png','icon-128.png'].forEach(n=>fs.writeFileSync(`public/${n}`,buf));"
 ```
 
-- [ ] **Step 9: Verify build runs**
+- [ ] **步驟 9：驗證 build 可以跑**
 
 ```bash
 npm run build
 ```
 
-Expected: `dist/` produced with `manifest.json`, `background/index.js`, `content/index.js`, `options/index.html`. No errors.
+預期：產生 `dist/`，內含 `manifest.json`、`background/index.js`、`content/index.js`、`options/index.html`，無錯誤。
 
-- [ ] **Step 10: Commit**
+- [ ] **步驟 10：commit**
 
 ```bash
 git add -A
@@ -237,13 +235,13 @@ git commit -m "Scaffold Vite + Preact + MV3 manifest"
 
 ---
 
-## Task 2: `shared/sanitize.ts` — filename sanitization (TDD)
+## 任務 2：`shared/sanitize.ts` — 檔名 sanitization（TDD）
 
-**Files:**
-- Create: `src/shared/sanitize.ts`
-- Test: `tests/unit/sanitize.test.ts`
+**檔案：**
+- 新增：`src/shared/sanitize.ts`
+- 測試：`tests/unit/sanitize.test.ts`
 
-- [ ] **Step 1: Write failing tests**
+- [ ] **步驟 1：寫失敗測試**
 
 ```ts
 // tests/unit/sanitize.test.ts
@@ -272,7 +270,6 @@ describe('sanitizeFilename', () => {
     expect(sanitizeFilename('PRN')).toBe('_PRN');
     expect(sanitizeFilename('COM1')).toBe('_COM1');
     expect(sanitizeFilename('LPT9')).toBe('_LPT9');
-    // case-insensitive
     expect(sanitizeFilename('con')).toBe('_con');
   });
 
@@ -293,15 +290,15 @@ describe('sanitizeFilename', () => {
 });
 ```
 
-- [ ] **Step 2: Run, verify it fails**
+- [ ] **步驟 2：跑測試確認失敗**
 
 ```bash
 npm test -- sanitize
 ```
 
-Expected: FAIL — module not found.
+預期：FAIL，找不到模組。
 
-- [ ] **Step 3: Implement**
+- [ ] **步驟 3：實作**
 
 ```ts
 // src/shared/sanitize.ts
@@ -320,15 +317,15 @@ export function sanitizeFilename(input: string, fallbackId?: string): string {
 }
 ```
 
-- [ ] **Step 4: Run, verify pass**
+- [ ] **步驟 4：跑測試確認通過**
 
 ```bash
 npm test -- sanitize
 ```
 
-Expected: PASS.
+預期：PASS。
 
-- [ ] **Step 5: Commit**
+- [ ] **步驟 5：commit**
 
 ```bash
 git add src/shared/sanitize.ts tests/unit/sanitize.test.ts
@@ -337,13 +334,13 @@ git commit -m "Add filename sanitization utility"
 
 ---
 
-## Task 3: `shared/timestamp.ts` — seconds <-> string (TDD)
+## 任務 3：`shared/timestamp.ts` — 秒數 <-> 字串（TDD）
 
-**Files:**
-- Create: `src/shared/timestamp.ts`
-- Test: `tests/unit/timestamp.test.ts`
+**檔案：**
+- 新增：`src/shared/timestamp.ts`
+- 測試：`tests/unit/timestamp.test.ts`
 
-- [ ] **Step 1: Write failing tests**
+- [ ] **步驟 1：寫失敗測試**
 
 ```ts
 // tests/unit/timestamp.test.ts
@@ -363,13 +360,13 @@ describe('formatDash', () => {
 });
 ```
 
-- [ ] **Step 2: Run, verify fails**
+- [ ] **步驟 2：跑測試確認失敗**
 
 ```bash
 npm test -- timestamp
 ```
 
-- [ ] **Step 3: Implement**
+- [ ] **步驟 3：實作**
 
 ```ts
 // src/shared/timestamp.ts
@@ -387,7 +384,7 @@ export function formatDash(totalSec: number): string {
 }
 ```
 
-- [ ] **Step 4: Run, verify pass + commit**
+- [ ] **步驟 4：跑測試確認通過 + commit**
 
 ```bash
 npm test -- timestamp
@@ -397,12 +394,12 @@ git commit -m "Add timestamp formatting utilities"
 
 ---
 
-## Task 4: `shared/types.ts` — domain types
+## 任務 4：`shared/types.ts` — 領域型別
 
-**Files:**
-- Create: `src/shared/types.ts`
+**檔案：**
+- 新增：`src/shared/types.ts`
 
-- [ ] **Step 1: Define types**
+- [ ] **步驟 1：定義型別**
 
 ```ts
 // src/shared/types.ts
@@ -441,7 +438,7 @@ export interface StorageShape {
 export const DEFAULT_SETTINGS: Settings = { theme: 'system', hasVaultConfigured: false };
 ```
 
-- [ ] **Step 2: Commit**
+- [ ] **步驟 2：commit**
 
 ```bash
 git add src/shared/types.ts
@@ -450,14 +447,14 @@ git commit -m "Add domain types"
 
 ---
 
-## Task 5: `shared/storage.ts` — chrome.storage.local wrapper (TDD)
+## 任務 5：`shared/storage.ts` — chrome.storage.local 包裝（TDD）
 
-**Files:**
-- Create: `src/shared/storage.ts`
-- Create: `tests/unit/_chrome-mock.ts`
-- Test: `tests/unit/storage.test.ts`
+**檔案：**
+- 新增：`src/shared/storage.ts`
+- 新增：`tests/unit/_chrome-mock.ts`
+- 測試：`tests/unit/storage.test.ts`
 
-- [ ] **Step 1: Write a chrome.storage mock**
+- [ ] **步驟 1：寫 chrome.storage mock**
 
 ```ts
 // tests/unit/_chrome-mock.ts
@@ -500,7 +497,7 @@ export function installChromeMock(): { reset: () => void } {
 }
 ```
 
-- [ ] **Step 2: Write failing tests**
+- [ ] **步驟 2：寫失敗測試**
 
 ```ts
 // tests/unit/storage.test.ts
@@ -551,17 +548,17 @@ describe('storage', () => {
 });
 ```
 
-- [ ] **Step 3: Run, verify fails**
+- [ ] **步驟 3：跑測試確認失敗**
 
 ```bash
 npm test -- storage
 ```
 
-- [ ] **Step 4: Implement**
+- [ ] **步驟 4：實作**
 
 ```ts
 // src/shared/storage.ts
-import { DEFAULT_SETTINGS, Settings, Video, StorageShape } from './types';
+import { DEFAULT_SETTINGS, Settings, Video } from './types';
 
 const VIDEOS_KEY = 'videos';
 const SETTINGS_KEY = 'settings';
@@ -598,7 +595,7 @@ export async function setSettings(s: Settings): Promise<void> {
 }
 ```
 
-- [ ] **Step 5: Run, verify pass + commit**
+- [ ] **步驟 5：跑測試確認通過 + commit**
 
 ```bash
 npm test -- storage
@@ -608,13 +605,13 @@ git commit -m "Add chrome.storage wrapper"
 
 ---
 
-## Task 6: `shared/idb.ts` — IndexedDB wrapper for screenshots + vaultHandle (TDD)
+## 任務 6：`shared/idb.ts` — IndexedDB 包裝（screenshots + vaultHandle，TDD）
 
-**Files:**
-- Create: `src/shared/idb.ts`
-- Test: `tests/unit/idb.test.ts`
+**檔案：**
+- 新增：`src/shared/idb.ts`
+- 測試：`tests/unit/idb.test.ts`
 
-- [ ] **Step 1: Write failing tests (using fake-indexeddb)**
+- [ ] **步驟 1：寫失敗測試（用 fake-indexeddb）**
 
 ```ts
 // tests/unit/idb.test.ts
@@ -655,13 +652,13 @@ describe('idb screenshots', () => {
 });
 ```
 
-- [ ] **Step 2: Run, verify fails**
+- [ ] **步驟 2：跑測試確認失敗**
 
 ```bash
 npm test -- idb
 ```
 
-- [ ] **Step 3: Implement**
+- [ ] **步驟 3：實作**
 
 ```ts
 // src/shared/idb.ts
@@ -720,9 +717,9 @@ export async function clearVaultHandle(): Promise<void> {
 }
 ```
 
-- [ ] **Step 4: Run, verify pass; reset dbPromise between tests if needed**
+- [ ] **步驟 4：跑測試確認通過 + commit**
 
-If tests interfere, add a `_resetForTest` export and call it in `beforeEach`. Otherwise:
+若測試之間互相干擾，可加一個 `_resetForTest` 並在 `beforeEach` 呼叫；否則直接：
 
 ```bash
 npm test -- idb
@@ -732,13 +729,13 @@ git commit -m "Add IndexedDB wrapper for screenshots and vault handle"
 
 ---
 
-## Task 7: `shared/markdown.ts` — render note.md (TDD)
+## 任務 7：`shared/markdown.ts` — 產生 note.md（TDD）
 
-**Files:**
-- Create: `src/shared/markdown.ts`
-- Test: `tests/unit/markdown.test.ts`
+**檔案：**
+- 新增：`src/shared/markdown.ts`
+- 測試：`tests/unit/markdown.test.ts`
 
-- [ ] **Step 1: Write failing tests**
+- [ ] **步驟 1：寫失敗測試**
 
 ```ts
 // tests/unit/markdown.test.ts
@@ -814,13 +811,13 @@ describe('renderNoteMd', () => {
 });
 ```
 
-- [ ] **Step 2: Run, verify fails**
+- [ ] **步驟 2：跑測試確認失敗**
 
 ```bash
 npm test -- markdown
 ```
 
-- [ ] **Step 3: Implement**
+- [ ] **步驟 3：實作**
 
 ```ts
 // src/shared/markdown.ts
@@ -870,7 +867,7 @@ export function renderNoteMd(video: Video, exportedAtIso: string): string {
 }
 ```
 
-- [ ] **Step 4: Run, verify pass + commit**
+- [ ] **步驟 4：跑測試確認通過 + commit**
 
 ```bash
 npm test -- markdown
@@ -880,12 +877,12 @@ git commit -m "Add note.md renderer"
 
 ---
 
-## Task 8: `shared/uuid.ts` — id generator
+## 任務 8：`shared/uuid.ts` — id 產生器
 
-**Files:**
-- Create: `src/shared/uuid.ts`
+**檔案：**
+- 新增：`src/shared/uuid.ts`
 
-- [ ] **Step 1: Implement**
+- [ ] **步驟 1：實作**
 
 ```ts
 // src/shared/uuid.ts
@@ -893,7 +890,7 @@ export function noteId(): string { return 'note_' + crypto.randomUUID(); }
 export function shotId(): string { return 'shot_' + crypto.randomUUID(); }
 ```
 
-- [ ] **Step 2: Commit**
+- [ ] **步驟 2：commit**
 
 ```bash
 git add src/shared/uuid.ts
@@ -902,14 +899,14 @@ git commit -m "Add uuid helpers"
 
 ---
 
-## Task 9: Service worker — message protocol + screenshot handler
+## 任務 9：Service worker — 訊息協定 + 截圖 handler
 
-**Files:**
-- Create: `src/background/messages.ts`
-- Create: `src/background/screenshot.ts`
-- Modify: `src/background/index.ts`
+**檔案：**
+- 新增：`src/background/messages.ts`
+- 新增：`src/background/screenshot.ts`
+- 修改：`src/background/index.ts`
 
-- [ ] **Step 1: Define message types**
+- [ ] **步驟 1：定義訊息型別**
 
 ```ts
 // src/background/messages.ts
@@ -921,7 +918,7 @@ export type Message =
 export interface CaptureTabResponse { dataUrl: string; }
 ```
 
-- [ ] **Step 2: Implement screenshot handler**
+- [ ] **步驟 2：實作截圖 handler**
 
 ```ts
 // src/background/screenshot.ts
@@ -932,7 +929,7 @@ export async function captureActiveTab(): Promise<string> {
 }
 ```
 
-- [ ] **Step 3: Wire it in service worker**
+- [ ] **步驟 3：在 service worker 接線**
 
 ```ts
 // src/background/index.ts
@@ -950,21 +947,21 @@ chrome.runtime.onMessage.addListener((msg: Message, _sender, sendResponse) => {
 });
 ```
 
-- [ ] **Step 4: Build and manual test**
+- [ ] **步驟 4：build 並手動測試**
 
 ```bash
 npm run build
 ```
 
-Load `dist/` as unpacked extension at `chrome://extensions`. Open a YouTube video. Open the service worker devtools (chrome://extensions → "Inspect views: service worker"). In its console:
+到 `chrome://extensions` 載入 `dist/` 為未封裝。打開一支 YouTube 影片。打開 service worker 的 devtools（chrome://extensions → 「Inspect views: service worker」）。在 console：
 
 ```js
 chrome.tabs.query({active:true,currentWindow:true}).then(([t]) => chrome.tabs.captureVisibleTab(t.windowId,{format:'png'})).then(d => console.log(d.slice(0,80)));
 ```
 
-Expected: dataURL prefix `data:image/png;base64,...` printed.
+預期：印出 `data:image/png;base64,...` 開頭。
 
-- [ ] **Step 5: Commit**
+- [ ] **步驟 5：commit**
 
 ```bash
 git add src/background
@@ -973,13 +970,13 @@ git commit -m "Add service worker screenshot handler"
 
 ---
 
-## Task 10: Service worker — toggle panel command + icon click
+## 任務 10：Service worker — toggle panel 指令 + icon 點擊
 
-**Files:**
-- Create: `src/background/commands.ts`
-- Modify: `src/background/index.ts`
+**檔案：**
+- 新增：`src/background/commands.ts`
+- 修改：`src/background/index.ts`
 
-- [ ] **Step 1: Implement**
+- [ ] **步驟 1：實作**
 
 ```ts
 // src/background/commands.ts
@@ -988,9 +985,9 @@ export function sendTogglePanel(tabId: number): void {
 }
 ```
 
-- [ ] **Step 2: Wire icon click + command**
+- [ ] **步驟 2：接線 icon click + command**
 
-Add to `src/background/index.ts` (top-level, not inside the message listener):
+加到 `src/background/index.ts` top level（不是 message listener 內）：
 
 ```ts
 import { sendTogglePanel } from './commands';
@@ -1008,11 +1005,11 @@ chrome.commands.onCommand.addListener((command) => {
 });
 ```
 
-- [ ] **Step 3: Manual test**
+- [ ] **步驟 3：手動測試**
 
-Reload extension. Click toolbar icon on a YouTube watch page → check content script console for `toggle-panel` message reception (will work after Task 12).
+reload 擴充功能。在 YouTube 觀看頁點 toolbar icon → content script console 收到 `toggle-panel`（任務 14 之後才會看到面板實際開）。
 
-- [ ] **Step 4: Commit**
+- [ ] **步驟 4：commit**
 
 ```bash
 git add src/background
@@ -1021,13 +1018,13 @@ git commit -m "Add toggle-panel command and icon click"
 
 ---
 
-## Task 11: Service worker — badge updater on storage change
+## 任務 11：Service worker — badge 隨 storage 變動更新
 
-**Files:**
-- Create: `src/background/badge.ts`
-- Modify: `src/background/index.ts`
+**檔案：**
+- 新增：`src/background/badge.ts`
+- 修改：`src/background/index.ts`
 
-- [ ] **Step 1: Extract videoId from URL**
+- [ ] **步驟 1：從 URL 抽 videoId**
 
 ```ts
 // src/background/badge.ts
@@ -1055,10 +1052,10 @@ export async function refreshBadgeForTab(tabId: number, url: string | undefined)
 }
 ```
 
-- [ ] **Step 2: Wire in service worker**
+- [ ] **步驟 2：在 service worker 接線**
 
 ```ts
-// add to src/background/index.ts
+// src/background/index.ts 加入
 import { refreshBadgeForTab } from './badge';
 
 chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
@@ -1076,7 +1073,7 @@ chrome.storage.onChanged.addListener((changes, area) => {
 });
 ```
 
-- [ ] **Step 3: Commit**
+- [ ] **步驟 3：commit**
 
 ```bash
 git add src/background
@@ -1085,13 +1082,13 @@ git commit -m "Add toolbar badge updater"
 
 ---
 
-## Task 12: Content script bootstrap — detect video element + SPA navigation
+## 任務 12：Content script bootstrap — 偵測 video 元素 + SPA 導航
 
-**Files:**
-- Create: `src/content/yt-navigation.ts`
-- Modify: `src/content/index.ts`
+**檔案：**
+- 新增：`src/content/yt-navigation.ts`
+- 修改：`src/content/index.ts`
 
-- [ ] **Step 1: Implement navigation detection**
+- [ ] **步驟 1：實作導航偵測**
 
 ```ts
 // src/content/yt-navigation.ts
@@ -1122,7 +1119,7 @@ export function findVideoElement(): HTMLVideoElement | null {
 }
 ```
 
-- [ ] **Step 2: Bootstrap content script**
+- [ ] **步驟 2：bootstrap content script**
 
 ```ts
 // src/content/index.ts
@@ -1133,13 +1130,13 @@ let currentVideoId: string | null = null;
 watchYouTubeNavigation((videoId) => {
   currentVideoId = videoId;
   console.log('[video-notes] video changed:', videoId);
-  // Panel mount logic comes in Task 13
+  // Panel mount logic comes in next task
 });
 
 chrome.runtime.onMessage.addListener((msg) => {
   if (msg.type === 'toggle-panel') {
     console.log('[video-notes] toggle-panel; current video:', currentVideoId);
-    // Panel toggle logic in Task 13
+    // Panel toggle logic in next task
   }
 });
 
@@ -1147,19 +1144,19 @@ chrome.runtime.onMessage.addListener((msg) => {
 (globalThis as any).__videoNotes = { findVideoElement };
 ```
 
-- [ ] **Step 3: Manual test**
+- [ ] **步驟 3：手動測試**
 
-Reload extension. Open `youtube.com/watch?v=...`. In the YouTube page console:
+reload 擴充功能。打開 `youtube.com/watch?v=...`。在 YouTube 頁的 console：
 
 ```js
 __videoNotes.findVideoElement()
 ```
 
-Expected: returns the `<video>` element.
+預期：回傳 `<video>` 元素。
 
-Click toolbar icon → console logs "toggle-panel; current video: <id>".
+點 toolbar icon → console 印 `toggle-panel; current video: <id>`。
 
-- [ ] **Step 4: Commit**
+- [ ] **步驟 4：commit**
 
 ```bash
 git add src/content
@@ -1168,13 +1165,13 @@ git commit -m "Content script: detect video element and SPA nav"
 
 ---
 
-## Task 13: Theme tokens + theme detection
+## 任務 13：Theme tokens + theme 偵測
 
-**Files:**
-- Create: `src/ui/theme.ts`
-- Create: `src/ui/panel.css`
+**檔案：**
+- 新增：`src/ui/theme.ts`
+- 新增：`src/ui/panel.css`
 
-- [ ] **Step 1: Define theme tokens**
+- [ ] **步驟 1：定義 theme tokens**
 
 ```css
 /* src/ui/panel.css */
@@ -1214,7 +1211,7 @@ git commit -m "Content script: detect video element and SPA nav"
 .vn-add { width: 100%; padding: 8px; background: var(--vn-accent); color: var(--vn-accent-fg); border: 0; border-radius: 4px; cursor: pointer; }
 ```
 
-- [ ] **Step 2: Theme resolution**
+- [ ] **步驟 2：theme 解析**
 
 ```ts
 // src/ui/theme.ts
@@ -1242,7 +1239,7 @@ export function watchSystemTheme(cb: () => void): () => void {
 }
 ```
 
-- [ ] **Step 3: Commit**
+- [ ] **步驟 3：commit**
 
 ```bash
 git add src/ui
@@ -1251,15 +1248,15 @@ git commit -m "Add theme tokens and resolution"
 
 ---
 
-## Task 14: Panel host — Shadow DOM + Preact mount
+## 任務 14：面板 host — Shadow DOM + Preact 掛載
 
-**Files:**
-- Create: `src/content/panel-host.ts`
-- Create: `src/ui/Panel.tsx` (skeleton)
-- Create: `src/ui/EmptyState.tsx`
-- Modify: `src/content/index.ts`
+**檔案：**
+- 新增：`src/content/panel-host.ts`
+- 新增：`src/ui/Panel.tsx`（skeleton）
+- 新增：`src/ui/EmptyState.tsx`
+- 修改：`src/content/index.ts`
 
-- [ ] **Step 1: Empty state component**
+- [ ] **步驟 1：空狀態元件**
 
 ```tsx
 // src/ui/EmptyState.tsx
@@ -1275,7 +1272,7 @@ export function EmptyState({ onAdd }: { onAdd: () => void }) {
 }
 ```
 
-- [ ] **Step 2: Panel skeleton**
+- [ ] **步驟 2：Panel skeleton**
 
 ```tsx
 // src/ui/Panel.tsx
@@ -1288,7 +1285,7 @@ export interface PanelProps {
 }
 
 export function Panel({ videoId, onClose }: PanelProps) {
-  const [_v, setV] = useState(0);  // re-render trigger placeholder; replaced in Task 15
+  const [_v, setV] = useState(0);  // 重繪 trigger placeholder；任務 16 會替換
   return (
     <div class="vn-panel">
       <div class="vn-panel-header">
@@ -1302,7 +1299,7 @@ export function Panel({ videoId, onClose }: PanelProps) {
 }
 ```
 
-- [ ] **Step 3: Panel host**
+- [ ] **步驟 3：Panel host**
 
 ```ts
 // src/content/panel-host.ts
@@ -1314,11 +1311,7 @@ import panelCss from '../ui/panel.css?raw';
 
 const HOST_ID = 'video-notes-panel-host';
 
-export interface PanelMount {
-  unmount: () => void;
-}
-
-export async function mountPanel(videoId: string): Promise<PanelMount> {
+export async function mountPanel(videoId: string): Promise<void> {
   // Find target: YouTube #secondary (related videos) container
   const target = document.querySelector('#secondary') ?? document.body;
   let host = document.getElementById(HOST_ID);
@@ -1341,15 +1334,8 @@ export async function mountPanel(videoId: string): Promise<PanelMount> {
   const settings = await getSettings();
   applyThemeClass(host, settings.theme);
 
-  const onClose = () => unmount();
+  const onClose = () => unmountPanel();
   render(h(Panel, { videoId, onClose }), root);
-
-  const unmount = () => {
-    render(null, root);
-    host?.remove();
-  };
-
-  return { unmount };
 }
 
 export function unmountPanel(): void {
@@ -1361,12 +1347,12 @@ export function isPanelMounted(): boolean {
 }
 ```
 
-- [ ] **Step 4: Wire toggle in content/index.ts**
+- [ ] **步驟 4：在 content/index.ts 接線 toggle**
 
 ```ts
-// src/content/index.ts — replace the toggle-panel handler
+// src/content/index.ts — 替換 toggle-panel handler
 import { mountPanel, unmountPanel, isPanelMounted } from './panel-host';
-// ... inside chrome.runtime.onMessage.addListener:
+// ... 在 chrome.runtime.onMessage.addListener 內：
 if (msg.type === 'toggle-panel') {
   if (!currentVideoId) return;
   if (isPanelMounted()) unmountPanel();
@@ -1374,15 +1360,15 @@ if (msg.type === 'toggle-panel') {
 }
 ```
 
-- [ ] **Step 5: Manual test**
+- [ ] **步驟 5：手動測試**
 
-Build, reload, open a YouTube watch page, click toolbar icon. Panel should appear at top of right column with empty state.
+build、reload、打開 YouTube 觀看頁、點 toolbar icon。面板應出現在右欄頂端，顯示空狀態。
 
 ```bash
 npm run build
 ```
 
-- [ ] **Step 6: Commit**
+- [ ] **步驟 6：commit**
 
 ```bash
 git add src/content src/ui
@@ -1391,14 +1377,14 @@ git commit -m "Mount Preact panel in Shadow DOM"
 
 ---
 
-## Task 15: NoteList + NoteCard components (display-only)
+## 任務 15：NoteList + NoteCard 元件（純顯示）
 
-**Files:**
-- Create: `src/ui/NoteCard.tsx`
-- Create: `src/ui/NoteList.tsx`
-- Modify: `src/ui/Panel.tsx`
+**檔案：**
+- 新增：`src/ui/NoteCard.tsx`
+- 新增：`src/ui/NoteList.tsx`
+- 修改：`src/ui/Panel.tsx`
 
-- [ ] **Step 1: NoteCard**
+- [ ] **步驟 1：NoteCard**
 
 ```tsx
 // src/ui/NoteCard.tsx
@@ -1426,7 +1412,7 @@ export function NoteCard({ note, onSeek, onEdit, onDelete }: NoteCardProps) {
 }
 ```
 
-- [ ] **Step 2: NoteList**
+- [ ] **步驟 2：NoteList**
 
 ```tsx
 // src/ui/NoteList.tsx
@@ -1452,12 +1438,12 @@ export function NoteList({ notes, onSeek, onEdit, onDelete }: NoteListProps) {
 }
 ```
 
-- [ ] **Step 3: Component test**
+- [ ] **步驟 3：元件測試**
 
 ```ts
 // tests/unit/NoteList.test.tsx
 import '@testing-library/preact';
-import { render, screen } from '@testing-library/preact';
+import { render } from '@testing-library/preact';
 import { describe, it, expect, vi } from 'vitest';
 import { NoteList } from '../../src/ui/NoteList';
 import type { Note } from '../../src/shared/types';
@@ -1482,7 +1468,7 @@ describe('NoteList', () => {
 });
 ```
 
-Configure Vitest happy-dom env (add to `vite.config.ts` or `vitest.config.ts`):
+設定 Vitest 用 happy-dom：
 
 ```ts
 // vitest.config.ts
@@ -1494,7 +1480,7 @@ export default defineConfig({
 });
 ```
 
-- [ ] **Step 4: Run, commit**
+- [ ] **步驟 4：跑、commit**
 
 ```bash
 npm test -- NoteList
@@ -1504,13 +1490,13 @@ git commit -m "Add NoteList and NoteCard components"
 
 ---
 
-## Task 16: NoteEditor (inline create/edit) + state in Panel
+## 任務 16：NoteEditor（inline 新增/編輯）+ Panel state machine
 
-**Files:**
-- Create: `src/ui/NoteEditor.tsx`
-- Modify: `src/ui/Panel.tsx`
+**檔案：**
+- 新增：`src/ui/NoteEditor.tsx`
+- 修改：`src/ui/Panel.tsx`
 
-- [ ] **Step 1: NoteEditor**
+- [ ] **步驟 1：NoteEditor**
 
 ```tsx
 // src/ui/NoteEditor.tsx
@@ -1519,7 +1505,7 @@ import { formatColon } from '../shared/timestamp';
 
 export interface NoteEditorProps {
   initialText?: string;
-  getCurrentSec: () => number;     // poll to reflect scrub
+  getCurrentSec: () => number;     // poll 反映 scrub
   onSave: (text: string, sec: number) => void;
   onCancel: () => void;
 }
@@ -1548,9 +1534,9 @@ export function NoteEditor({ initialText = '', getCurrentSec, onSave, onCancel }
 }
 ```
 
-- [ ] **Step 2: Panel state machine**
+- [ ] **步驟 2：Panel 狀態機**
 
-Replace `src/ui/Panel.tsx`:
+替換 `src/ui/Panel.tsx`：
 
 ```tsx
 import { useEffect, useState, useCallback } from 'preact/hooks';
@@ -1665,10 +1651,10 @@ export function Panel({ videoId, getVideoMeta, getCurrentSec, pauseVideo, seekVi
 }
 ```
 
-- [ ] **Step 3: Update panel-host.ts to inject deps**
+- [ ] **步驟 3：更新 panel-host.ts 注入依賴**
 
 ```ts
-// src/content/panel-host.ts — replace mountPanel signature/body
+// src/content/panel-host.ts — 替換 mountPanel 簽名與內容
 import { render, h } from 'preact';
 import { Panel, type PanelDeps } from '../ui/Panel';
 import { applyThemeClass } from '../ui/theme';
@@ -1723,7 +1709,7 @@ export function unmountPanel(): void {
 export function isPanelMounted(): boolean { return !!document.getElementById(HOST_ID); }
 ```
 
-- [ ] **Step 4: Commit**
+- [ ] **步驟 4：commit**
 
 ```bash
 git add src/ui src/content/panel-host.ts
@@ -1732,12 +1718,12 @@ git commit -m "Wire NoteEditor and full panel state machine"
 
 ---
 
-## Task 17: `screenshot-client.ts` — capture via SW + crop in canvas
+## 任務 17：`screenshot-client.ts` — 透過 SW 截圖 + canvas 裁切
 
-**Files:**
-- Create: `src/content/screenshot-client.ts`
+**檔案：**
+- 新增：`src/content/screenshot-client.ts`
 
-- [ ] **Step 1: Implement**
+- [ ] **步驟 1：實作**
 
 ```ts
 // src/content/screenshot-client.ts
@@ -1779,11 +1765,11 @@ function loadImage(src: string): Promise<HTMLImageElement> {
 }
 ```
 
-- [ ] **Step 2: Manual end-to-end smoke test**
+- [ ] **步驟 2：手動端到端 smoke test**
 
-Build, reload extension. Open a YouTube watch page. Click toolbar icon → panel opens. Click "+ 新增筆記" → editor appears, video pauses. Type text, Save. Verify in chrome.storage (devtools Application tab → Storage → Extension → IndexedDB / chrome.storage). Refresh page → panel re-opens → note still there.
+build、reload。打開 YouTube 觀看頁。點 toolbar icon → 面板開。點「+ 新增筆記」→ 編輯卡出現、影片暫停。打字、Save。在 devtools Application 分頁 → Storage → Extension → IndexedDB / chrome.storage 確認資料寫入。F5 重整頁面、再打開面板 → 筆記還在。
 
-- [ ] **Step 3: Commit**
+- [ ] **步驟 3：commit**
 
 ```bash
 git add src/content/screenshot-client.ts
@@ -1792,12 +1778,12 @@ git commit -m "Add screenshot capture with crop"
 
 ---
 
-## Task 18: `options/export/ensureVault.ts` — vault handle persistence
+## 任務 18：`options/export/ensureVault.ts` — vault handle 持久化
 
-**Files:**
-- Create: `src/options/export/ensureVault.ts`
+**檔案：**
+- 新增：`src/options/export/ensureVault.ts`
 
-- [ ] **Step 1: Implement**
+- [ ] **步驟 1：實作**
 
 ```ts
 // src/options/export/ensureVault.ts
@@ -1821,7 +1807,7 @@ export async function ensureVault(): Promise<FileSystemDirectoryHandle> {
 }
 ```
 
-- [ ] **Step 2: Commit**
+- [ ] **步驟 2：commit**
 
 ```bash
 git add src/options/export/ensureVault.ts
@@ -1830,13 +1816,13 @@ git commit -m "Add vault handle ensure/pick"
 
 ---
 
-## Task 19: `options/export/writeAssets.ts` — incremental asset writes (TDD)
+## 任務 19：`options/export/writeAssets.ts` — 增量 asset 寫入（TDD）
 
-**Files:**
-- Create: `src/options/export/writeAssets.ts`
-- Test: `tests/unit/writeAssets.test.ts`
+**檔案：**
+- 新增：`src/options/export/writeAssets.ts`
+- 測試：`tests/unit/writeAssets.test.ts`
 
-- [ ] **Step 1: Define an in-memory FS mock**
+- [ ] **步驟 1：定義記憶體 FS mock**
 
 ```ts
 // tests/unit/_fs-mock.ts
@@ -1874,13 +1860,13 @@ export class FakeDir {
     if (!this.files.delete(name)) this.dirs.delete(name);
   }
   async *entries(): AsyncIterableIterator<[string, any]> {
-    for (const [k, v] of this.files.entries()) yield [k, { kind: 'file', name: k }];
-    for (const [k, v] of this.dirs.entries()) yield [k, { kind: 'directory', name: k }];
+    for (const [k] of this.files.entries()) yield [k, { kind: 'file', name: k }];
+    for (const [k] of this.dirs.entries()) yield [k, { kind: 'directory', name: k }];
   }
 }
 ```
 
-- [ ] **Step 2: Write failing tests**
+- [ ] **步驟 2：寫失敗測試**
 
 ```ts
 // tests/unit/writeAssets.test.ts
@@ -1936,13 +1922,13 @@ describe('writeAssets', () => {
 });
 ```
 
-- [ ] **Step 3: Run, verify fails**
+- [ ] **步驟 3：跑測試確認失敗**
 
 ```bash
 npm test -- writeAssets
 ```
 
-- [ ] **Step 4: Implement**
+- [ ] **步驟 4：實作**
 
 ```ts
 // src/options/export/writeAssets.ts
@@ -1976,13 +1962,11 @@ export async function writeAssets(folder: FileSystemDirectoryHandle, notes: Note
     throw new Error('Cannot create assets/: ' + e);
   }
 
-  // List existing
   const existing = new Set<string>();
   for await (const [name, handle] of (assets as any).entries()) {
     if (handle.kind === 'file') existing.add(name);
   }
 
-  // Write new
   for (const { note, filename } of plan) {
     if (existing.has(filename)) continue;
     const blob = await getScreenshot(note.screenshotKey);
@@ -1993,7 +1977,6 @@ export async function writeAssets(folder: FileSystemDirectoryHandle, notes: Note
     await w.close();
   }
 
-  // Remove orphans
   for (const name of existing) {
     if (!wanted.has(name)) {
       await (assets as any).removeEntry(name);
@@ -2002,7 +1985,7 @@ export async function writeAssets(folder: FileSystemDirectoryHandle, notes: Note
 }
 ```
 
-- [ ] **Step 5: Run, verify pass + commit**
+- [ ] **步驟 5：跑測試確認通過 + commit**
 
 ```bash
 npm test -- writeAssets
@@ -2012,12 +1995,12 @@ git commit -m "Add incremental asset writer"
 
 ---
 
-## Task 20: `options/export/writeNoteMd.ts` — write note.md
+## 任務 20：`options/export/writeNoteMd.ts` — 寫 note.md
 
-**Files:**
-- Create: `src/options/export/writeNoteMd.ts`
+**檔案：**
+- 新增：`src/options/export/writeNoteMd.ts`
 
-- [ ] **Step 1: Implement**
+- [ ] **步驟 1：實作**
 
 ```ts
 // src/options/export/writeNoteMd.ts
@@ -2033,7 +2016,7 @@ export async function writeNoteMd(folder: FileSystemDirectoryHandle, video: Vide
 }
 ```
 
-- [ ] **Step 2: Commit**
+- [ ] **步驟 2：commit**
 
 ```bash
 git add src/options/export/writeNoteMd.ts
@@ -2042,13 +2025,13 @@ git commit -m "Add note.md writer"
 
 ---
 
-## Task 21: `options/export/runExport.ts` — orchestrate single-video export (TDD)
+## 任務 21：`options/export/runExport.ts` — 單支匯出協調流程（TDD）
 
-**Files:**
-- Create: `src/options/export/runExport.ts`
-- Test: `tests/unit/runExport.test.ts`
+**檔案：**
+- 新增：`src/options/export/runExport.ts`
+- 測試：`tests/unit/runExport.test.ts`
 
-- [ ] **Step 1: Write failing tests**
+- [ ] **步驟 1：寫失敗測試**
 
 ```ts
 // tests/unit/runExport.test.ts
@@ -2081,8 +2064,7 @@ describe('runExportForVideo', () => {
   });
 
   it('creates folder named YYYY-MM-DD_<sanitized title>', async () => {
-    const v = baseVideo();
-    await upsertVideo(v);
+    await upsertVideo(baseVideo());
     const root = new FakeDir('root') as any;
     await runExportForVideo(root, 'abc123');
     expect(Array.from(root.dirs.keys())).toEqual(['2026-05-10_Hello- World--']);
@@ -2115,13 +2097,13 @@ describe('runExportForVideo', () => {
 });
 ```
 
-- [ ] **Step 2: Run, verify fails**
+- [ ] **步驟 2：跑測試確認失敗**
 
 ```bash
 npm test -- runExport
 ```
 
-- [ ] **Step 3: Implement**
+- [ ] **步驟 3：實作**
 
 ```ts
 // src/options/export/runExport.ts
@@ -2133,7 +2115,7 @@ import { writeAssets } from './writeAssets';
 export interface ExportResult { skipped: boolean; folderName?: string; }
 
 function folderName(video: { firstNoteAt: string; title: string; videoId: string }): string {
-  const date = video.firstNoteAt.slice(0, 10); // YYYY-MM-DD
+  const date = video.firstNoteAt.slice(0, 10);
   const safe = sanitizeFilename(video.title, video.videoId);
   return `${date}_${safe}`;
 }
@@ -2169,7 +2151,7 @@ export async function runExportAll(vault: FileSystemDirectoryHandle, ids: string
 }
 ```
 
-- [ ] **Step 4: Run, verify pass + commit**
+- [ ] **步驟 4：跑測試確認通過 + commit**
 
 ```bash
 npm test -- runExport
@@ -2179,19 +2161,13 @@ git commit -m "Add export orchestrator"
 
 ---
 
-## Task 22: Options page UI
+## 任務 22：Options page UI
 
-**Files:**
-- Create: `src/options/OptionsPage.tsx`
-- Create: `src/options/VaultSection.tsx`
-- Create: `src/options/ThemeSection.tsx`
-- Create: `src/options/VideoList.tsx`
-- Create: `src/options/VideoRow.tsx`
-- Modify: `src/options/index.tsx`
-- Modify: `src/options/index.html` (link panel.css)
-- Modify: `src/ui/panel.css` — extend for `.options-root` (already done in Task 13)
+**檔案：**
+- 新增：`src/options/OptionsPage.tsx`、`src/options/VaultSection.tsx`、`src/options/ThemeSection.tsx`、`src/options/VideoList.tsx`、`src/options/VideoRow.tsx`、`src/options/options.css`
+- 修改：`src/options/index.tsx`、`src/options/index.html`
 
-- [ ] **Step 1: VaultSection**
+- [ ] **步驟 1：VaultSection**
 
 ```tsx
 // src/options/VaultSection.tsx
@@ -2231,7 +2207,7 @@ export function VaultSection() {
 }
 ```
 
-- [ ] **Step 2: ThemeSection**
+- [ ] **步驟 2：ThemeSection**
 
 ```tsx
 // src/options/ThemeSection.tsx
@@ -2264,7 +2240,7 @@ export function ThemeSection({ onChange }: { onChange: (t: Theme) => void }) {
 }
 ```
 
-- [ ] **Step 3: VideoRow + VideoList**
+- [ ] **步驟 3：VideoRow + VideoList**
 
 ```tsx
 // src/options/VideoRow.tsx
@@ -2297,7 +2273,7 @@ export function VideoRow({ video, onExport, onDelete }: VideoRowProps) {
 // src/options/VideoList.tsx
 import { useEffect, useState } from 'preact/hooks';
 import { getAllVideos, deleteVideo } from '../shared/storage';
-import { listScreenshotKeys, deleteScreenshot } from '../shared/idb';
+import { deleteScreenshot } from '../shared/idb';
 import { VideoRow } from './VideoRow';
 import { runExportForVideo, runExportAll } from './export/runExport';
 import { ensureVault } from './export/ensureVault';
@@ -2364,23 +2340,30 @@ export function VideoList() {
 }
 ```
 
-- [ ] **Step 4: OptionsPage + index**
+- [ ] **步驟 4：OptionsPage + index**
 
 ```tsx
 // src/options/OptionsPage.tsx
-import { useEffect, useState } from 'preact/hooks';
+import { useEffect } from 'preact/hooks';
 import { getSettings } from '../shared/storage';
-import { applyThemeClass } from '../ui/theme';
+import { applyThemeClass, watchSystemTheme } from '../ui/theme';
 import { VaultSection } from './VaultSection';
 import { ThemeSection } from './ThemeSection';
 import { VideoList } from './VideoList';
 import type { Theme } from '../shared/types';
 
 export function OptionsPage() {
-  useEffect(() => { (async () => {
-    const s = await getSettings();
-    applyThemeClass(document.body, s.theme);
-  })(); }, []);
+  useEffect(() => {
+    (async () => {
+      const s = await getSettings();
+      applyThemeClass(document.body, s.theme);
+    })();
+    const stop = watchSystemTheme(async () => {
+      const s = await getSettings();
+      applyThemeClass(document.body, s.theme);
+    });
+    return stop;
+  }, []);
 
   return (
     <div class="options-root" style="max-width: 720px; margin: 32px auto; padding: 0 16px;">
@@ -2401,26 +2384,22 @@ import './options.css';
 render(<OptionsPage />, document.getElementById('root')!);
 ```
 
-- [ ] **Step 5: Inline panel.css into options too**
-
-```ts
-// src/options/options.css — re-export panel css plus root reset
+```css
+/* src/options/options.css */
 @import '../ui/panel.css';
 body { margin: 0; }
 .options-root { background: var(--vn-bg); color: var(--vn-fg); min-height: 100vh; }
 ```
 
-Update `panel.css` selector `:host` to also accept `.options-root`. (Already accounted for in Task 13.)
-
-- [ ] **Step 6: Build + manual smoke**
+- [ ] **步驟 5：build + 手動 smoke**
 
 ```bash
 npm run build
 ```
 
-Reload extension. Open `chrome://extensions` → click "選項" on Video Notes → page renders. Click "選擇" → directory picker. Click "匯出" on a row → file written.
+reload 擴充功能。在 `chrome://extensions` 點 Video Notes 的「選項」→ 頁面渲染。點「選擇」→ 跳資料夾選擇器。在某一行點「匯出」→ 檔案寫入磁碟。
 
-- [ ] **Step 7: Commit**
+- [ ] **步驟 6：commit**
 
 ```bash
 git add src/options
@@ -2429,65 +2408,54 @@ git commit -m "Add options page UI"
 
 ---
 
-## Task 23: Theme — system-preference change live update
+## 任務 23：面板隨系統主題變動即時更新
 
-**Files:**
-- Modify: `src/content/panel-host.ts`
-- Modify: `src/options/OptionsPage.tsx`
+**檔案：**
+- 修改：`src/content/panel-host.ts`
 
-- [ ] **Step 1: Watch system theme in panel-host**
+- [ ] **步驟 1：在 panel-host 監聽系統主題**
 
-In `mountPanel`, after applying initial theme:
+在 `mountPanel` 內，套用初始 theme 後加入：
 
 ```ts
 import { watchSystemTheme } from '../ui/theme';
-// after applyThemeClass(...)
-const stop = watchSystemTheme(async () => {
+
+let stopThemeWatch: (() => void) | null = null;
+
+// 在 mountPanel 內，applyThemeClass(host, settings.theme) 之後：
+stopThemeWatch = watchSystemTheme(async () => {
   const s = await getSettings();
   applyThemeClass(host!, s.theme);
 });
-// store stop on host data attr or module-scoped to call from unmountPanel
 ```
 
-Add to `unmountPanel` to call `stop()`. Track via module-scoped variable:
+修改 `unmountPanel` 釋放：
 
 ```ts
-let stopThemeWatch: (() => void) | null = null;
-// inside mountPanel: stopThemeWatch = watchSystemTheme(...)
-// inside unmountPanel: stopThemeWatch?.(); stopThemeWatch = null;
+export function unmountPanel(): void {
+  stopThemeWatch?.();
+  stopThemeWatch = null;
+  document.getElementById(HOST_ID)?.remove();
+}
 ```
 
-- [ ] **Step 2: Same in OptionsPage**
-
-```tsx
-useEffect(() => {
-  const stop = watchSystemTheme(async () => {
-    const s = await getSettings();
-    applyThemeClass(document.body, s.theme);
-  });
-  return stop;
-}, []);
-```
-
-(import `watchSystemTheme` from `../ui/theme`).
-
-- [ ] **Step 3: Commit**
+- [ ] **步驟 2：commit**
 
 ```bash
-git add src/content/panel-host.ts src/options/OptionsPage.tsx
-git commit -m "Live-update theme on system pref change"
+git add src/content/panel-host.ts
+git commit -m "Live-update panel theme on system pref change"
 ```
 
 ---
 
-## Task 24: Storage onChanged → re-render panel across tabs
+## 任務 24：跨分頁同步 — 面板隨 storage 變動重繪
 
-**Files:**
-- Modify: `src/ui/Panel.tsx`
+**檔案：**
+- 修改：`src/ui/Panel.tsx`
 
-- [ ] **Step 1: Subscribe to storage changes**
+- [ ] **步驟 1：訂閱 storage.onChanged**
 
-In `Panel`'s `useEffect` after initial `load()`:
+在 `Panel` 內 `useEffect` 改成：
 
 ```tsx
 useEffect(() => {
@@ -2500,7 +2468,7 @@ useEffect(() => {
 }, [load]);
 ```
 
-- [ ] **Step 2: Commit**
+- [ ] **步驟 2：commit**
 
 ```bash
 git add src/ui/Panel.tsx
@@ -2509,14 +2477,12 @@ git commit -m "Sync panel state via storage.onChanged"
 
 ---
 
-## Task 25: Playwright E2E — add note + export
+## 任務 25：Playwright E2E — 新增筆記
 
-**Files:**
-- Create: `playwright.config.ts`
-- Create: `tests/e2e/fixtures.ts`
-- Create: `tests/e2e/add-note.spec.ts`
+**檔案：**
+- 新增：`playwright.config.ts`、`tests/e2e/fixtures.ts`、`tests/e2e/add-note.spec.ts`
 
-- [ ] **Step 1: Playwright config**
+- [ ] **步驟 1：Playwright 設定**
 
 ```ts
 // playwright.config.ts
@@ -2529,7 +2495,7 @@ export default defineConfig({
 });
 ```
 
-- [ ] **Step 2: Extension fixture**
+- [ ] **步驟 2：擴充功能 fixture**
 
 ```ts
 // tests/e2e/fixtures.ts
@@ -2561,32 +2527,28 @@ export const test = base.extend<{ context: BrowserContext; extensionId: string }
 export const expect = test.expect;
 ```
 
-- [ ] **Step 3: Spec — add note**
+- [ ] **步驟 3：spec — 新增筆記**
 
 ```ts
 // tests/e2e/add-note.spec.ts
 import { test, expect } from './fixtures';
 
-test('open panel and add a note on a YouTube watch page', async ({ context, extensionId }) => {
+test('open panel and add a note on a YouTube watch page', async ({ context }) => {
   const page = await context.newPage();
   await page.goto('https://www.youtube.com/watch?v=dQw4w9WgXcQ');
   await page.waitForSelector('#movie_player video');
 
-  // Trigger panel via toggle command (use action click via background SW eval)
   const sw = context.serviceWorkers()[0];
   await sw.evaluate(async () => {
     const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
     chrome.tabs.sendMessage(tab.id!, { type: 'toggle-panel' });
   });
 
-  // Panel host appears
   const host = page.locator('#video-notes-panel-host');
   await expect(host).toBeVisible();
 
-  // Click "+ 新增筆記" inside shadow DOM
   await host.evaluate((el) => (el.shadowRoot!.querySelector('button.vn-add') as HTMLButtonElement).click());
 
-  // Type into editor textarea
   await host.evaluate((el) => {
     const ta = el.shadowRoot!.querySelector('textarea') as HTMLTextAreaElement;
     ta.value = 'Hello from E2E';
@@ -2597,7 +2559,6 @@ test('open panel and add a note on a YouTube watch page', async ({ context, exte
     btn.click();
   });
 
-  // Wait for note to appear
   await page.waitForFunction(() => {
     const h = document.getElementById('video-notes-panel-host');
     return h?.shadowRoot?.querySelector('.vn-note-text')?.textContent?.includes('Hello from E2E');
@@ -2605,16 +2566,16 @@ test('open panel and add a note on a YouTube watch page', async ({ context, exte
 });
 ```
 
-- [ ] **Step 4: Build then run**
+- [ ] **步驟 4：build 後執行**
 
 ```bash
 npm run build
 npm run e2e
 ```
 
-Expected: spec passes, browser opens YouTube, panel appears, note saved.
+預期：spec 通過。瀏覽器開 YouTube、面板出現、筆記寫入。
 
-- [ ] **Step 5: Commit**
+- [ ] **步驟 5：commit**
 
 ```bash
 git add playwright.config.ts tests/e2e
@@ -2623,34 +2584,36 @@ git commit -m "Add Playwright E2E for add-note flow"
 
 ---
 
-## Task 26: README updates and limitations notes
+## 任務 26：README 補上開發指令與已知限制
 
-**Files:**
-- Modify: `README.md`
+**檔案：**
+- 修改：`README.md`
 
-- [ ] **Step 1: Append "已知限制" + "開發指令" sections**
+- [ ] **步驟 1：在 README 末段附加章節**
+
+在 README 末段加：
 
 ```markdown
 
 ## 開發指令
 
-```bash
+\`\`\`bash
 npm install            # 第一次
-npm run dev            # 開發模式（HMR，但 MV3 部分仍需手動 reload）
+npm run dev            # 開發模式（HMR；MV3 部分仍需到 chrome://extensions reload）
 npm run build          # 產生 dist/，到 chrome://extensions 載入未封裝
-npm test               # unit tests
-npm run e2e            # Playwright E2E（需先 build）
-```
+npm test               # 單元測試
+npm run e2e            # Playwright E2E（先 build）
+\`\`\`
 
 ## 已知限制（V1）
 
 - 截圖時若 YouTube 正在播廣告，會截到廣告畫面（V1 不偵測廣告）
 - 不支援 YouTube Shorts、直播、嵌入頁
 - 不擷取逐字稿；不做 AI 改寫
-- 沒有跨裝置同步；資料在當前瀏覽器
+- 沒有跨裝置同步；資料只存當前瀏覽器
 ```
 
-- [ ] **Step 2: Commit**
+- [ ] **步驟 2：commit**
 
 ```bash
 git add README.md
@@ -2659,45 +2622,43 @@ git commit -m "Add dev instructions and V1 limitations to README"
 
 ---
 
-## Self-review notes
+## Spec 對照表（self-review）
 
-**Spec coverage check:**
-
-| Spec section | Task |
+| Spec 章節 | 對應任務 |
 |---|---|
-| §1 Scope | covered by Task 1 manifest match URL |
-| §2 User flow | Tasks 14 (panel mount), 16 (editor), 17 (capture), 22 (export UI) |
-| §3 Architecture | Tasks 9–11 (SW), 12–14 (CS + panel), 22 (Options) |
-| §4.1 chrome.storage | Tasks 4, 5, 16 |
-| §4.2 IndexedDB | Tasks 6, 16, 18 |
-| §4.3 Derived rules | Task 16 (lastModifiedAt updates), Task 19 (asset cleanup), VideoList delete in Task 22 |
-| §5.1 Panel states | Tasks 14–16 |
-| §5.2 Options page | Task 22 |
-| §5.3 Toolbar badge | Task 11 |
-| §5.4 Theme | Tasks 13, 22 (ThemeSection), 23 (live update) |
-| §6 Export logic | Tasks 18–22 |
-| §6.3 Sanitize | Task 2 |
-| §6.4 Asset filename | Task 3 + Task 19 |
-| §7 note.md format | Task 7 |
-| §8.1 Open panel | Tasks 10, 14 |
-| §8.2 New note flow | Task 16 |
-| §8.3 Edit | Task 16 |
-| §8.4 Delete | Task 16 |
-| §8.5 Seek | Task 15 (NoteCard onSeek) wired in Task 16 |
-| §8.6 SPA navigation | Task 12 (re-renders panel by remount on toggle; auto-load via storage.onChanged in Task 24) |
-| §8.7 Multi-tab | Task 24 |
-| §9 Edge cases | Tasks 2 (sanitize), 17 (scrollIntoView), 18 (permission), VideoList errors in 22 |
-| §10 Permissions | Task 1 manifest |
-| §11 Tech stack | Task 1 |
+| §1 範圍 | 任務 1（manifest match URL） |
+| §2 使用流程 | 任務 14（面板掛載）、16（編輯器）、17（截圖）、22（匯出 UI） |
+| §3 架構 | 任務 9–11（SW）、12–14（CS + 面板）、22（Options） |
+| §4.1 chrome.storage | 任務 4、5、16 |
+| §4.2 IndexedDB | 任務 6、16、18 |
+| §4.3 衍生規則 | 任務 16（lastModifiedAt 更新）、19（assets 清孤兒）、22（VideoList 刪除） |
+| §5.1 面板狀態 | 任務 14–16 |
+| §5.2 Options page | 任務 22 |
+| §5.3 Toolbar badge | 任務 11 |
+| §5.4 Theme | 任務 13、22（ThemeSection）、23（live update） |
+| §6 匯出邏輯 | 任務 18–22 |
+| §6.3 sanitization | 任務 2 |
+| §6.4 截圖檔名 | 任務 3 + 19 |
+| §7 note.md 格式 | 任務 7 |
+| §8.1 開啟面板 | 任務 10、14 |
+| §8.2 新增筆記 | 任務 16 |
+| §8.3 編輯 | 任務 16 |
+| §8.4 刪除 | 任務 16 |
+| §8.5 點時間戳跳轉 | 任務 15（NoteCard onSeek）+ 任務 16 接線 |
+| §8.6 SPA 換影片 | 任務 12（重新載入）+ 任務 24（storage.onChanged） |
+| §8.7 多分頁 | 任務 24 |
+| §9 邊角情境 | 任務 2（sanitize）、17（scrollIntoView）、18（permission）、22（VideoList 錯誤訊息） |
+| §10 權限 | 任務 1 manifest |
+| §11 技術選型 | 任務 1 |
 
-**Type consistency:** All `Note`, `Video`, `Settings` types defined in Task 4 and reused. Method names checked across Panel, Options, export modules.
+**型別一致性：** `Note`、`Video`、`Settings` 等型別在任務 4 定義，後續沿用；方法名 `runExportForVideo` / `runExportAll` 等跨檔案一致。
 
-**Placeholder scan:** No TBD / TODO / "implement later". Each step shows actual code.
+**Placeholder 掃描：** 沒有 TBD / TODO / 未填段落，每一步都附實際代碼或具體指令。
 
-**Known caveats acknowledged in spec:** ad-screenshot, Shorts/live exclusion (§9, §12).
+**已知限制已在 spec 標明：** §9（廣告畫面）、§12（Shorts/直播排除）。
 
 ---
 
-## Plan complete
+## 計畫完成
 
-Plan saved to `docs/superpowers/plans/2026-05-10-video-notes-v1.md`.
+計畫已存到 `docs/superpowers/plans/2026-05-10-video-notes-v1.md`。
