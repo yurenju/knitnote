@@ -7,6 +7,7 @@ import type { Video, Note } from '../shared/types';
 import { getVideo, upsertVideo } from '../shared/storage';
 import { putScreenshot, deleteScreenshot } from '../content/idb-client';
 import { noteId, shotId } from '../shared/uuid';
+import { ensureTranscript } from '../content/transcript-trigger';
 
 // 1×1 transparent PNG used when live screenshot capture fails.
 const PLACEHOLDER_PNG_BYTES = Uint8Array.from(atob(
@@ -109,6 +110,9 @@ export function Panel({ videoId, getVideoMeta, getCurrentSec, pauseVideo, playVi
         : { ...optimistic, notes: [finalNote] };
       await upsertVideo(merged);
       setVideo(merged);
+      if (!fresh || fresh.notes.length === 0) {
+        ensureTranscript(videoId);
+      }
     } catch (err) {
       console.error('[video-notes] save failed, rolling back:', err);
       setVideo(baseline);
