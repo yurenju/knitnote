@@ -57,4 +57,12 @@ describe('runExportForVideo', () => {
     expect(result.skipped).toBe(true);
     expect(root.dirs.size).toBe(0);
   });
+
+  it('force: true exports even when nothing changed since last export', async () => {
+    const root = new FakeDir('root') as any;
+    await upsertVideo(baseVideo({ lastExportedAt: '2026-05-10T15:01:00+08:00' }));
+    const result = await runExportForVideo(root, 'abc123', { force: true });
+    expect(result.skipped).toBe(false);
+    expect(root.dirs.size).toBe(1);
+  });
 });

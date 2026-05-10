@@ -2,6 +2,15 @@ import type { Note } from '../../shared/types';
 import { formatDash } from '../../shared/timestamp';
 import { getScreenshot } from '../../shared/idb';
 
+export interface WriteAssetsOptions {
+  /**
+   * When true, every asset is rewritten even if a file of the same name
+   * already exists. Use to repair a folder that contains stale or
+   * placeholder PNGs from a previous export.
+   */
+  force?: boolean;
+}
+
 export function assetNameFor(note: Note, indexAtSameSec: number): string {
   const base = formatDash(note.timestampSec);
   return indexAtSameSec === 0 ? `${base}.png` : `${base}-${indexAtSameSec + 1}.png`;
@@ -17,7 +26,11 @@ export function buildAssetPlan(notes: Note[]): Array<{ note: Note; filename: str
   });
 }
 
-export async function writeAssets(folder: FileSystemDirectoryHandle, notes: Note[]): Promise<void> {
+export async function writeAssets(
+  folder: FileSystemDirectoryHandle,
+  notes: Note[],
+  options: WriteAssetsOptions = {}
+): Promise<void> {
   const plan = buildAssetPlan(notes);
   const wanted = new Set(plan.map(p => p.filename));
 
@@ -34,7 +47,7 @@ export async function writeAssets(folder: FileSystemDirectoryHandle, notes: Note
   }
 
   for (const { note, filename } of plan) {
-    if (existing.has(filename)) continue;
+    if (!options.force && existing.has(filename)) continue;
     const blob = await getScreenshot(note.screenshotKey);
     if (!blob) continue;
     const fileHandle = await assets.getFileHandle(filename, { create: true });
@@ -43,9 +56,15 @@ export async function writeAssets(folder: FileSystemDirectoryHandle, notes: Note
     await w.close();
   }
 
+  // Best-effort orphan cleanup. Cloud-sync clients (OneDrive/Dropbox/iCloud)
+  // can transiently lock files and make removeEntry throw — log and keep
+  // going so one stuck file does not abort the whole export.
   for (const name of existing) {
-    if (!wanted.has(name)) {
+    if (wanted.has(name)) continue;
+    try {
       await (assets as any).removeEntry(name);
+    } catch (e) {
+      console.warn(`[video-notes] could not remove orphan asset ${name}:`, e);
     }
   }
 }

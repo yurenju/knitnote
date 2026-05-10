@@ -38,6 +38,34 @@ describe('writeAssets', () => {
     expect(assets.files.has('00-99-99.png')).toBe(false);
   });
 
+  it('force: true overwrites existing assets', async () => {
+    await putScreenshot('s1', new Blob([new Uint8Array([9, 9, 9])], { type: 'image/png' }));
+    const root = new FakeDir('root') as any;
+    const assets = await root.getDirectoryHandle('assets', { create: true });
+    const stale = new Blob([new Uint8Array([1])]);
+    assets.files.set('00-03-42.png', stale);
+    await writeAssets(root, [note('n1', 222, 's1')], { force: true });
+    const after = assets.files.get('00-03-42.png');
+    expect(after).not.toBe(stale);
+    expect(new Uint8Array(await after!.arrayBuffer())).toEqual(new Uint8Array([9, 9, 9]));
+  });
+
+  it('keeps going when removeEntry throws (best-effort orphan cleanup)', async () => {
+    const root = new FakeDir('root') as any;
+    const assets = await root.getDirectoryHandle('assets', { create: true });
+    assets.files.set('orphan-locked.png', new Blob());
+    assets.files.set('orphan-removable.png', new Blob());
+    // Patch removeEntry to throw for one file, succeed for the other.
+    const orig = assets.removeEntry.bind(assets);
+    assets.removeEntry = async (name: string) => {
+      if (name === 'orphan-locked.png') throw new Error('locked by sync');
+      return orig(name);
+    };
+    await writeAssets(root, []);
+    expect(assets.files.has('orphan-locked.png')).toBe(true);
+    expect(assets.files.has('orphan-removable.png')).toBe(false);
+  });
+
   it('handles duplicate-second timestamps with -2 suffix', async () => {
     await putScreenshot('s1', new Blob([new Uint8Array([1])]));
     await putScreenshot('s2', new Blob([new Uint8Array([2])]));

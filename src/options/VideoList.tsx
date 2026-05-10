@@ -30,12 +30,17 @@ export function VideoList() {
     } finally { setBusy(false); }
   };
 
-  const exportAll = async () => {
+  const exportAll = async (force = false) => {
     setBusy(true); setMsg(null);
     try {
       const vault = await ensureVault();
       const ids = videos.map(v => v.videoId);
-      const r = await runExportAll(vault, ids, (i, total) => setMsg(`進行中 ${i}/${total}`));
+      const r = await runExportAll(
+        vault,
+        ids,
+        (i, total) => setMsg(`進行中 ${i}/${total}`),
+        { force }
+      );
       setMsg(`完成：匯出 ${r.exported}，跳過 ${r.skipped}`);
       await reload();
     } catch (e) {
@@ -55,9 +60,12 @@ export function VideoList() {
 
   return (
     <section>
-      <div style="display:flex; justify-content:space-between; align-items:center;">
+      <div style="display:flex; justify-content:space-between; align-items:center; gap:8px;">
         <h3>已筆記的影片 ({videos.length})</h3>
-        <button class="vn-btn-primary" disabled={busy || videos.length === 0} onClick={exportAll}>匯出全部</button>
+        <div style="display:flex; gap:6px;">
+          <button class="vn-btn-secondary" disabled={busy || videos.length === 0} onClick={() => exportAll(true)} title="忽略上次匯出時間，重寫所有 note.md 與 assets">強制重新匯出全部</button>
+          <button class="vn-btn-primary" disabled={busy || videos.length === 0} onClick={() => exportAll(false)}>匯出全部</button>
+        </div>
       </div>
       {msg && <div style="margin: 8px 0; color: var(--vn-fg-muted);">{msg}</div>}
       {videos.length === 0
