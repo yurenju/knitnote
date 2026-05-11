@@ -19,7 +19,7 @@
   }
 
   const origFetch = window.fetch;
-  window.fetch = function (...args: Parameters<typeof origFetch>) {
+  window.fetch = function (this: typeof window, ...args: Parameters<typeof origFetch>) {
     const promise = origFetch.apply(this, args);
     try {
       const input = args[0];
