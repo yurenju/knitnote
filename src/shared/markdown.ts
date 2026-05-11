@@ -2,6 +2,7 @@ import type { Video, Note } from './types';
 import type { TranscriptRecord } from './transcript';
 import { sliceWindow } from './transcript';
 import { formatColon, formatDash } from './timestamp';
+import { sanitizeFilename } from './sanitize';
 
 function yamlValue(v: string): string {
   if (/[":#\n]/.test(v)) return '"' + v.replace(/"/g, '\\"') + '"';
@@ -28,6 +29,8 @@ export function renderNoteMd(
   const lines: string[] = [];
   lines.push('---');
   lines.push('title: ' + yamlValue(video.title));
+  lines.push('aliases:');
+  lines.push('  - ' + yamlValue(sanitizeFilename(video.title, video.videoId)));
   lines.push('url: ' + video.url);
   lines.push('channel: ' + yamlValue(video.channel));
   lines.push('videoId: ' + video.videoId);
