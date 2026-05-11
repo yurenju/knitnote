@@ -55,7 +55,19 @@ describe('renderNoteMd', () => {
     expect(out).toContain('## [00:03:42](https://www.youtube.com/watch?v=abc123&t=222s)');
   });
 
-  it('escapes YAML-unsafe title characters by quoting', () => {
+  it('includes aliases with sanitized title for Obsidian', () => {
+    const tricky = { ...video, title: 'Why "AI" is: hard?/painful' };
+    const out = renderNoteMd(tricky, '2026-05-10T15:30:00+08:00');
+    expect(out).toContain('aliases:\n  - Why -AI- is- hard--painful');
+  });
+
+  it('falls back to videoId in aliases when title sanitizes to empty', () => {
+    const empty = { ...video, title: '   ' };
+    const out = renderNoteMd(empty, '2026-05-10T15:30:00+08:00');
+    expect(out).toContain('aliases:\n  - abc123');
+  });
+
+it('escapes YAML-unsafe title characters by quoting', () => {
     const tricky = { ...video, title: 'Title: with colon "quotes"' };
     const out = renderNoteMd(tricky, '2026-05-10T15:30:00+08:00');
     expect(out).toMatch(/title: ".*"/);
