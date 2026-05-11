@@ -1,7 +1,7 @@
 (() => {
-  if ((window as any).__videoNotesFetchHooked) return;
-  (window as any).__videoNotesFetchHooked = true;
-  console.log('[video-notes] main-world fetch hook installed');
+  if ((window as any).__knitnoteFetchHooked) return;
+  (window as any).__knitnoteFetchHooked = true;
+  console.log('[knitnote] main-world fetch hook installed');
 
   function captureTimedtext(url: string): void {
     try {
@@ -11,10 +11,10 @@
       if (!v) return;
       u.searchParams.delete('tlang');
       window.postMessage(
-        { type: 'video-notes:tt-base', videoId: v, baseUrl: u.toString() },
+        { type: 'knitnote:tt-base', videoId: v, baseUrl: u.toString() },
         location.origin
       );
-      console.log('[video-notes] captured timedtext base URL for video', v);
+      console.log('[knitnote] captured timedtext base URL for video', v);
     } catch (_) {}
   }
 

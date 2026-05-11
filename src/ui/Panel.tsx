@@ -94,7 +94,7 @@ export function Panel({ videoId, getVideoMeta, getCurrentSec, pauseVideo, playVi
       try {
         blob = await captureScreenshot();
       } catch (err) {
-        console.warn('[video-notes] screenshot failed, using placeholder:', err);
+        console.warn('[knitnote] screenshot failed, using placeholder:', err);
         blob = PLACEHOLDER_PNG_BLOB();
       }
       // Pixels are now locked into the canvas-derived Blob. Resume
@@ -114,7 +114,7 @@ export function Panel({ videoId, getVideoMeta, getCurrentSec, pauseVideo, playVi
         ensureTranscript(videoId);
       }
     } catch (err) {
-      console.error('[video-notes] save failed, rolling back:', err);
+      console.error('[knitnote] save failed, rolling back:', err);
       setVideo(baseline);
     }
   };
@@ -156,7 +156,7 @@ export function Panel({ videoId, getVideoMeta, getCurrentSec, pauseVideo, playVi
       onKeyPress={swallow}
     >
       <div class="vn-panel-header">
-        <strong>📝 {video && video.notes.length > 0 ? `${video.notes.length} 條筆記` : 'Video Notes'}</strong>
+        <strong>📝 {video && video.notes.length > 0 ? `${video.notes.length} 條筆記` : 'KnitNote'}</strong>
         <button class="vn-btn-secondary" onClick={onClose}>✕</button>
       </div>
 

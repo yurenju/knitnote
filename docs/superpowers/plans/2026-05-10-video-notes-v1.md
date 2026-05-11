@@ -1,4 +1,4 @@
-# Video Notes V1 實作計畫
+# KnitNote V1 實作計畫
 
 > **給 agentic worker：** 必要的 sub-skill 是 superpowers:subagent-driven-development（建議）或 superpowers:executing-plans，逐 task 執行。每個步驟用 checkbox（`- [ ]`）追蹤狀態。
 
@@ -8,7 +8,7 @@
 
 **技術棧：** TypeScript、Preact + Vite（`vite-plugin-web-extension`）、`idb` 操作 IndexedDB、Vitest + `fake-indexeddb` 跑單元測試、Playwright 跑擴充功能 E2E。
 
-**Spec：** [docs/superpowers/specs/2026-05-10-video-notes-v1-design.md](../specs/2026-05-10-video-notes-v1-design.md) — 動工前先讀過。
+**Spec：** [docs/superpowers/specs/2026-05-10-knitnote-v1-design.md](../specs/2026-05-10-knitnote-v1-design.md) — 動工前先讀過。
 
 ---
 
@@ -126,7 +126,7 @@ npm install -D typescript vite vite-plugin-web-extension @types/chrome @preact/p
 ```ts
 export default {
   manifest_version: 3,
-  name: 'Video Notes',
+  name: 'KnitNote',
   version: '0.1.0',
   description: 'Take time-stamped notes on YouTube videos and export as Markdown literature notes.',
   background: { service_worker: 'src/background/index.ts', type: 'module' },
@@ -144,7 +144,7 @@ export default {
   commands: {
     'toggle-panel': {
       suggested_key: { default: 'Alt+N' },
-      description: 'Toggle Video Notes panel'
+      description: 'Toggle KnitNote panel'
     }
   },
   icons: { 16: 'icon-16.png', 48: 'icon-48.png', 128: 'icon-128.png' }
@@ -175,19 +175,19 @@ export default defineConfig({
 
 `src/background/index.ts`：
 ```ts
-console.log('[video-notes] service worker boot');
+console.log('[knitnote] service worker boot');
 ```
 
 `src/content/index.ts`：
 ```ts
-console.log('[video-notes] content script boot');
+console.log('[knitnote] content script boot');
 ```
 
 `src/options/index.html`：
 ```html
 <!doctype html>
 <html>
-  <head><meta charset="utf-8"><title>Video Notes — Settings</title></head>
+  <head><meta charset="utf-8"><title>KnitNote — Settings</title></head>
   <body><div id="root"></div><script type="module" src="./index.tsx"></script></body>
 </html>
 ```
@@ -195,7 +195,7 @@ console.log('[video-notes] content script boot');
 `src/options/index.tsx`：
 ```ts
 import { render } from 'preact';
-render(<div>Video Notes Options</div>, document.getElementById('root')!);
+render(<div>KnitNote Options</div>, document.getElementById('root')!);
 ```
 
 - [ ] **步驟 7：在 `package.json` 加入 npm scripts**
@@ -621,7 +621,7 @@ import { putScreenshot, getScreenshot, deleteScreenshot, listScreenshotKeys } fr
 
 describe('idb screenshots', () => {
   beforeEach(async () => {
-    indexedDB.deleteDatabase('video-notes');
+    indexedDB.deleteDatabase('knitnote');
   });
 
   it('roundtrips a Blob', async () => {
@@ -664,7 +664,7 @@ npm test -- idb
 // src/shared/idb.ts
 import { openDB, IDBPDatabase } from 'idb';
 
-const DB_NAME = 'video-notes';
+const DB_NAME = 'knitnote';
 const DB_VERSION = 1;
 
 let dbPromise: Promise<IDBPDatabase> | null = null;
@@ -1129,19 +1129,19 @@ let currentVideoId: string | null = null;
 
 watchYouTubeNavigation((videoId) => {
   currentVideoId = videoId;
-  console.log('[video-notes] video changed:', videoId);
+  console.log('[knitnote] video changed:', videoId);
   // Panel mount logic comes in next task
 });
 
 chrome.runtime.onMessage.addListener((msg) => {
   if (msg.type === 'toggle-panel') {
-    console.log('[video-notes] toggle-panel; current video:', currentVideoId);
+    console.log('[knitnote] toggle-panel; current video:', currentVideoId);
     // Panel toggle logic in next task
   }
 });
 
 // expose for debugging
-(globalThis as any).__videoNotes = { findVideoElement };
+(globalThis as any).__knitnote = { findVideoElement };
 ```
 
 - [ ] **步驟 3：手動測試**
@@ -1149,7 +1149,7 @@ chrome.runtime.onMessage.addListener((msg) => {
 reload 擴充功能。打開 `youtube.com/watch?v=...`。在 YouTube 頁的 console：
 
 ```js
-__videoNotes.findVideoElement()
+__knitnote.findVideoElement()
 ```
 
 預期：回傳 `<video>` 元素。
@@ -1289,7 +1289,7 @@ export function Panel({ videoId, onClose }: PanelProps) {
   return (
     <div class="vn-panel">
       <div class="vn-panel-header">
-        <strong>📝 Video Notes</strong>
+        <strong>📝 KnitNote</strong>
         <button class="vn-btn-secondary" onClick={onClose}>✕</button>
       </div>
       <EmptyState onAdd={() => setV(v => v + 1)} />
@@ -1309,7 +1309,7 @@ import { applyThemeClass } from '../ui/theme';
 import { getSettings } from '../shared/storage';
 import panelCss from '../ui/panel.css?raw';
 
-const HOST_ID = 'video-notes-panel-host';
+const HOST_ID = 'knitnote-panel-host';
 
 export async function mountPanel(videoId: string): Promise<void> {
   // Find target: YouTube #secondary (related videos) container
@@ -1620,7 +1620,7 @@ export function Panel({ videoId, getVideoMeta, getCurrentSec, pauseVideo, seekVi
   return (
     <div class="vn-panel">
       <div class="vn-panel-header">
-        <strong>📝 {video && video.notes.length > 0 ? `${video.notes.length} 條筆記` : 'Video Notes'}</strong>
+        <strong>📝 {video && video.notes.length > 0 ? `${video.notes.length} 條筆記` : 'KnitNote'}</strong>
         <button class="vn-btn-secondary" onClick={onClose}>✕</button>
       </div>
 
@@ -1663,7 +1663,7 @@ import panelCss from '../ui/panel.css?raw';
 import { findVideoElement } from './yt-navigation';
 import { captureAndCrop } from './screenshot-client';
 
-const HOST_ID = 'video-notes-panel-host';
+const HOST_ID = 'knitnote-panel-host';
 
 export async function mountPanel(videoId: string): Promise<void> {
   const target = document.querySelector('#secondary') ?? document.body;
@@ -1882,7 +1882,7 @@ const note = (id: string, sec: number, key: string): Note => ({
 });
 
 describe('writeAssets', () => {
-  beforeEach(() => indexedDB.deleteDatabase('video-notes'));
+  beforeEach(() => indexedDB.deleteDatabase('knitnote'));
 
   it('writes a new asset with formatted name', async () => {
     await putScreenshot('s1', new Blob([new Uint8Array([1,2,3])], { type: 'image/png' }));
@@ -2059,7 +2059,7 @@ const baseVideo = (overrides: Partial<Video> = {}): Video => ({
 describe('runExportForVideo', () => {
   beforeEach(async () => {
     mock.reset();
-    indexedDB.deleteDatabase('video-notes');
+    indexedDB.deleteDatabase('knitnote');
     await putScreenshot('s1', new Blob([new Uint8Array([1])], { type: 'image/png' }));
   });
 
@@ -2367,7 +2367,7 @@ export function OptionsPage() {
 
   return (
     <div class="options-root" style="max-width: 720px; margin: 32px auto; padding: 0 16px;">
-      <h1>Video Notes — 設定</h1>
+      <h1>KnitNote — 設定</h1>
       <VaultSection />
       <ThemeSection onChange={(t: Theme) => applyThemeClass(document.body, t)} />
       <VideoList />
@@ -2397,7 +2397,7 @@ body { margin: 0; }
 npm run build
 ```
 
-reload 擴充功能。在 `chrome://extensions` 點 Video Notes 的「選項」→ 頁面渲染。點「選擇」→ 跳資料夾選擇器。在某一行點「匯出」→ 檔案寫入磁碟。
+reload 擴充功能。在 `chrome://extensions` 點 KnitNote 的「選項」→ 頁面渲染。點「選擇」→ 跳資料夾選擇器。在某一行點「匯出」→ 檔案寫入磁碟。
 
 - [ ] **步驟 6：commit**
 
@@ -2544,7 +2544,7 @@ test('open panel and add a note on a YouTube watch page', async ({ context }) =>
     chrome.tabs.sendMessage(tab.id!, { type: 'toggle-panel' });
   });
 
-  const host = page.locator('#video-notes-panel-host');
+  const host = page.locator('#knitnote-panel-host');
   await expect(host).toBeVisible();
 
   await host.evaluate((el) => (el.shadowRoot!.querySelector('button.vn-add') as HTMLButtonElement).click());
@@ -2560,7 +2560,7 @@ test('open panel and add a note on a YouTube watch page', async ({ context }) =>
   });
 
   await page.waitForFunction(() => {
-    const h = document.getElementById('video-notes-panel-host');
+    const h = document.getElementById('knitnote-panel-host');
     return h?.shadowRoot?.querySelector('.vn-note-text')?.textContent?.includes('Hello from E2E');
   }, { timeout: 10_000 });
 });
@@ -2663,4 +2663,4 @@ git commit -m "Add dev instructions and V1 limitations to README"
 
 ## 計畫完成
 
-計畫已存到 `docs/superpowers/plans/2026-05-10-video-notes-v1.md`。
+計畫已存到 `docs/superpowers/plans/2026-05-10-knitnote-v1.md`。

@@ -7,7 +7,7 @@ let currentVideoId: string | null = null;
 
 watchYouTubeNavigation((videoId) => {
   currentVideoId = videoId;
-  console.log('[video-notes] video changed:', videoId);
+  console.log('[knitnote] video changed:', videoId);
   // Panel mount logic comes in Task 14
 });
 
@@ -19,4 +19,4 @@ chrome.runtime.onMessage.addListener((msg) => {
   }
 });
 
-(globalThis as any).__videoNotes = { findVideoElement };
+(globalThis as any).__knitnote = { findVideoElement };

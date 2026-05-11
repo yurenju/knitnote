@@ -23,7 +23,7 @@ const baseVideo = (overrides: Partial<Video> = {}): Video => ({
 describe('runExportForVideo', () => {
   beforeEach(async () => {
     mock.reset();
-    indexedDB.deleteDatabase('video-notes');
+    indexedDB.deleteDatabase('knitnote');
     await putScreenshot('s1', new Blob([new Uint8Array([1])], { type: 'image/png' }));
   });
 
@@ -71,7 +71,7 @@ describe('runExportForVideo', () => {
 describe('runExportForVideo with transcript', () => {
   beforeEach(async () => {
     mock.reset();
-    indexedDB.deleteDatabase('video-notes');
+    indexedDB.deleteDatabase('knitnote');
     const db = await getDb();
     await db.clear('transcripts');
     await db.clear('screenshots');

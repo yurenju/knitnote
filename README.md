@@ -1,4 +1,4 @@
-# Video Notes
+# KnitNote
 
 一個 Chrome Extension，協助使用者在觀看 YouTube 影片時，以卡片盒筆記法（Zettelkasten）的精神做筆記。
 

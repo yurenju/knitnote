@@ -64,7 +64,7 @@ export async function writeAssets(
     try {
       await (assets as any).removeEntry(name);
     } catch (e) {
-      console.warn(`[video-notes] could not remove orphan asset ${name}:`, e);
+      console.warn(`[knitnote] could not remove orphan asset ${name}:`, e);
     }
   }
 }

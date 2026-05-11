@@ -10,7 +10,7 @@ const note = (id: string, sec: number, key: string): Note => ({
 });
 
 describe('writeAssets', () => {
-  beforeEach(() => indexedDB.deleteDatabase('video-notes'));
+  beforeEach(() => indexedDB.deleteDatabase('knitnote'));
 
   it('writes a new asset with formatted name', async () => {
     await putScreenshot('s1', new Blob([new Uint8Array([1,2,3])], { type: 'image/png' }));

@@ -7,7 +7,7 @@ import panelCss from '../ui/panel.css?raw';
 import { findVideoElement } from './yt-navigation';
 import { captureAndCrop } from './screenshot-client';
 
-const HOST_ID = 'video-notes-panel-host';
+const HOST_ID = 'knitnote-panel-host';
 
 let stopThemeWatch: (() => void) | null = null;
 

@@ -23,7 +23,7 @@ export function OptionsPage() {
 
   return (
     <div class="options-root" style="max-width: 720px; margin: 32px auto; padding: 0 16px;">
-      <h1>Video Notes — 設定</h1>
+      <h1>KnitNote — 設定</h1>
       <VaultSection />
       <ThemeSection onChange={(t: Theme) => applyThemeClass(document.body, t)} />
       <TranscriptSection />

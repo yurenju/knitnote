@@ -1,6 +1,6 @@
 export default {
   manifest_version: 3,
-  name: 'Video Notes',
+  name: 'KnitNote',
   version: '0.1.0',
   description: 'Take time-stamped notes on YouTube videos and export as Markdown literature notes.',
   background: { service_worker: 'src/background/index.ts', type: 'module' },
@@ -24,7 +24,7 @@ export default {
   commands: {
     'toggle-panel': {
       suggested_key: { default: 'Alt+N' },
-      description: 'Toggle Video Notes panel'
+      description: 'Toggle KnitNote panel'
     }
   },
   icons: { 16: 'icon-16.png', 48: 'icon-48.png', 128: 'icon-128.png' }

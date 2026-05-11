@@ -5,7 +5,7 @@ import type { TranscriptRecord } from '../../src/shared/transcript';
 
 describe('transcript-store', () => {
   beforeEach(async () => {
-    indexedDB.deleteDatabase('video-notes');
+    indexedDB.deleteDatabase('knitnote');
   });
 
   it('round-trips a TranscriptRecord', async () => {

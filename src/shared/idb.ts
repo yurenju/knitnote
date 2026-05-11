@@ -1,6 +1,6 @@
 import { openDB, IDBPDatabase } from 'idb';
 
-const DB_NAME = 'video-notes';
+const DB_NAME = 'knitnote';
 const DB_VERSION = 2;
 
 let dbPromise: Promise<IDBPDatabase> | null = null;

@@ -4,7 +4,7 @@ import { putScreenshot, getScreenshot, deleteScreenshot, listScreenshotKeys } fr
 
 describe('idb screenshots', () => {
   beforeEach(async () => {
-    indexedDB.deleteDatabase('video-notes');
+    indexedDB.deleteDatabase('knitnote');
   });
 
   it('roundtrips a Blob', async () => {

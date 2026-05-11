@@ -15,7 +15,7 @@ describe('transcript-cache', () => {
     window.dispatchEvent(
       new MessageEvent('message', {
         data: {
-          type: 'video-notes:tt-base',
+          type: 'knitnote:tt-base',
           videoId: 'abc',
           baseUrl: 'https://yt/api/timedtext?v=abc&pot=xxx'
         },

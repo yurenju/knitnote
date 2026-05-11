@@ -117,7 +117,7 @@ npm test -- transcript
 ```ts
 import { openDB, IDBPDatabase } from 'idb';
 
-const DB_NAME = 'video-notes';
+const DB_NAME = 'knitnote';
 const DB_VERSION = 2;
 
 let dbPromise: Promise<IDBPDatabase> | null = null;
@@ -1165,7 +1165,7 @@ export function ensureTranscript(videoId: string): void {
       try {
         segments = await fetchSegments(picked.url);
       } catch (e) {
-        console.warn('[video-notes] transcript fetch failed:', e);
+        console.warn('[knitnote] transcript fetch failed:', e);
         await putTranscriptViaSw({
           videoId,
           languageCode: picked.languageCode,
@@ -1186,7 +1186,7 @@ export function ensureTranscript(videoId: string): void {
       };
       await putTranscriptViaSw(rec);
     } catch (e) {
-      console.warn('[video-notes] ensureTranscript error:', e);
+      console.warn('[knitnote] ensureTranscript error:', e);
     }
   })();
 }
@@ -1356,7 +1356,7 @@ npm run build
 2. 開影片，按 toolbar icon 開面板
 3. 在 03:11 附近新增第一條筆記，存檔
 4. Console 應該看到 transcript fetch 沒有 error
-5. DevTools → Application → IndexedDB → `video-notes` → `transcripts`，確認有 record，`status='ok'`，`translationLanguage='zh-TW'`
+5. DevTools → Application → IndexedDB → `knitnote` → `transcripts`，確認有 record，`status='ok'`，`translationLanguage='zh-TW'`
 
 - [ ] **步驟 3：再加一條筆記**
 

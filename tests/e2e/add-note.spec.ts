@@ -15,7 +15,7 @@ test('open panel and add a note on a YouTube watch page', async ({ context, exte
     chrome.tabs.sendMessage(tab.id!, { type: 'toggle-panel' });
   });
 
-  const host = page.locator('#video-notes-panel-host');
+  const host = page.locator('#knitnote-panel-host');
   await expect(host).toBeVisible();
 
   await host.evaluate((el) => (el.shadowRoot!.querySelector('button.vn-add') as HTMLButtonElement).click());
@@ -31,7 +31,7 @@ test('open panel and add a note on a YouTube watch page', async ({ context, exte
   });
 
   await page.waitForFunction(() => {
-    const h = document.getElementById('video-notes-panel-host');
+    const h = document.getElementById('knitnote-panel-host');
     return h?.shadowRoot?.querySelector('.vn-note-text')?.textContent?.includes('Hello from E2E');
   }, { timeout: 10_000 });
 });

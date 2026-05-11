@@ -1,6 +1,6 @@
 # Manual Extension Testing via playwright-cli
 
-How to launch a chromium browser with the Video Notes extension auto-loaded
+How to launch a chromium browser with the KnitNote extension auto-loaded
 and drive it from the terminal. Use this whenever you change content
 scripts, MAIN-world hooks, IndexedDB schema, or anything that needs a real
 chromium environment to verify.
@@ -20,8 +20,8 @@ and YouTube using XHR not fetch for `/api/timedtext`.
     "launchOptions": {
       "headless": false,
       "args": [
-        "--disable-extensions-except=C:/Users/yuren/Documents/30-resources/src/video-notes/dist",
-        "--load-extension=C:/Users/yuren/Documents/30-resources/src/video-notes/dist"
+        "--disable-extensions-except=C:/Users/yuren/Documents/30-resources/src/knitnote/dist",
+        "--load-extension=C:/Users/yuren/Documents/30-resources/src/knitnote/dist"
       ]
     }
   }
@@ -50,12 +50,12 @@ npx playwright-cli open --persistent --config=.playwright-cli/config.json \
 
 # 4. Verify extension loaded
 npx playwright-cli --raw run-code \
-  "async page => page.evaluate(() => !!document.getElementById('video-notes-panel-host'))"
+  "async page => page.evaluate(() => !!document.getElementById('knitnote-panel-host'))"
 # expect: false (panel not yet mounted, but script ran without error)
 
 # 5. Confirm MAIN-world hook installed
-npx playwright-cli console 2>&1 | grep video-notes
-# expect: [LOG] [video-notes] main-world fetch hook installed
+npx playwright-cli console 2>&1 | grep knitnote
+# expect: [LOG] [knitnote] main-world fetch hook installed
 ```
 
 ## Driving the panel without a real toolbar click
@@ -80,7 +80,7 @@ snapshot` won't see it. Drive it through the shadow root:
 ```bash
 # click "+ 新增筆記"
 npx playwright-cli --raw run-code "async page => {
-  await page.locator('#video-notes-panel-host').evaluate(el => {
+  await page.locator('#knitnote-panel-host').evaluate(el => {
     el.shadowRoot.querySelector('button.vn-add').click();
   });
   return 'clicked';
@@ -88,7 +88,7 @@ npx playwright-cli --raw run-code "async page => {
 
 # fill the textarea
 npx playwright-cli --raw run-code "async page => {
-  await page.locator('#video-notes-panel-host').evaluate(el => {
+  await page.locator('#knitnote-panel-host').evaluate(el => {
     const ta = el.shadowRoot.querySelector('textarea');
     ta.value = 'auto test';
     ta.dispatchEvent(new Event('input', { bubbles: true }));
@@ -98,7 +98,7 @@ npx playwright-cli --raw run-code "async page => {
 
 # click Save
 npx playwright-cli --raw run-code "async page => {
-  await page.locator('#video-notes-panel-host').evaluate(el => {
+  await page.locator('#knitnote-panel-host').evaluate(el => {
     Array.from(el.shadowRoot.querySelectorAll('button'))
       .find(b => b.textContent?.trim() === 'Save').click();
   });
@@ -110,7 +110,7 @@ npx playwright-cli --raw run-code "async page => {
 
 ```bash
 # console log filtered to extension messages
-npx playwright-cli console 2>&1 | grep video-notes
+npx playwright-cli console 2>&1 | grep knitnote
 
 # all network requests (filter as needed, e.g. timedtext)
 npx playwright-cli requests 2>&1 | grep timedtext
@@ -123,7 +123,7 @@ npx playwright-cli --raw run-code "async page => {
   const sw = page.context().serviceWorkers().find(w => w.url().startsWith('chrome-extension://'));
   return sw.evaluate(async () => {
     const db = await new Promise((resolve, reject) => {
-      const req = indexedDB.open('video-notes', 2);
+      const req = indexedDB.open('knitnote', 2);
       req.onsuccess = () => resolve(req.result);
       req.onerror = () => reject(req.error);
     });
@@ -160,7 +160,7 @@ npx playwright-cli click e33
 # wait a moment, then verify the URL was captured
 sleep 2
 npx playwright-cli console 2>&1 | grep "captured timedtext"
-# expect: [LOG] [video-notes] captured timedtext base URL for video <id>
+# expect: [LOG] [knitnote] captured timedtext base URL for video <id>
 ```
 
 ## Cleanup
@@ -177,6 +177,6 @@ npx playwright-cli close-all
 |---|---|
 | `chrome://extensions` shows empty list | `channel: 'chrome'` in config — remove it |
 | `Browser "chromium" is not installed` | `npx playwright-cli install-browser chromium` |
-| `__videoNotesFetchHooked` is undefined in console | extension didn't load; check chrome://extensions first |
+| `__knitnoteFetchHooked` is undefined in console | extension didn't load; check chrome://extensions first |
 | Extension loaded but no `captured timedtext` log when CC enabled | YouTube changed transport; check `playwright-cli requests` for the timedtext URL and verify its `type:` |
 | `ensureTranscript` reports cache miss | CC wasn't enabled before save, or cache reset across navigations |
