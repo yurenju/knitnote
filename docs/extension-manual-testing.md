@@ -20,8 +20,8 @@ and YouTube using XHR not fetch for `/api/timedtext`.
     "launchOptions": {
       "headless": false,
       "args": [
-        "--disable-extensions-except=C:/Users/yuren/Documents/30-resources/src/knitnote/dist",
-        "--load-extension=C:/Users/yuren/Documents/30-resources/src/knitnote/dist"
+        "--disable-extensions-except=dist",
+        "--load-extension=dist"
       ]
     }
   }
@@ -34,6 +34,8 @@ Two non-obvious requirements:
    Real Chrome silently drops `--load-extension` under Playwright control.
 2. **playwright-cli's chromium must be installed**:
    `npx playwright-cli install-browser chromium` (one-off, ~110 MB).
+3. **Run playwright-cli from the repo root** — the extension paths above
+   are relative to the working directory.
 
 ## Workflow
 
