@@ -80,16 +80,16 @@ export function scrapeTranscript(): Promise<ScrapeResult>;
 頻道: RickAstleyVEVO
 網址: https://www.youtube.com/watch?v=dQw4w9WgXcQ
 
-[0:00] We're no strangers to love
-[0:05] You know the rules and so do I
-[0:09] A full commitment's what I'm thinking of
+[00:00:00] We're no strangers to love
+[00:00:05] You know the rules and so do I
+[00:00:09] A full commitment's what I'm thinking of
 ...
 ```
 
 格式決策:
 
 - **Header 三行 + 空行,人類可讀的 `key: value`**(不是 YAML frontmatter)。AI 仍可解析,但比較自然。
-- **Timestamp 重用 [src/shared/timestamp.ts](../../src/shared/timestamp.ts) 的 `formatColon`**(`m:ss` / `h:mm:ss`),與筆記匯出保持一致。
+- **Timestamp 重用 [src/shared/timestamp.ts](../../src/shared/timestamp.ts) 的 `formatColon`**(零填充 `HH:MM:SS`,即使影片不到一小時也含小時段),與筆記匯出保持一致。
 - **每段一行,無空行間隔** — 給 AI 看的,密度高一點,token 也省。
 - **不做去重、不做斷句合併** — YouTube 自己面板給什麼就照抄。
 
