@@ -36,6 +36,13 @@ Two non-obvious requirements:
    `npx playwright-cli install-browser chromium` (one-off, ~110 MB).
 3. **Run playwright-cli from the repo root** — the extension paths above
    are relative to the working directory.
+4. **In a git worktree, the relative `dist` path does not resolve** — Chromium
+   inherits its own binary directory as CWD, so it looks for `dist` next to
+   `chrome.exe` and fails with "資訊清單檔案遺失" (manifest missing). Before
+   launching, temporarily replace `dist` in `.playwright-cli/config.json` with
+   the worktree's absolute `dist` path (`pwd` + `/dist`). Revert before
+   committing — the relative form is correct for the main repo and we don't
+   want a worktree-specific path baked into the shared config.
 
 ## Workflow
 
