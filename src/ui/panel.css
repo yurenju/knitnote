@@ -45,3 +45,5 @@
 .vn-btn-secondary { background: transparent; color: var(--vn-fg); border: 1px solid var(--vn-border); padding: 6px 10px; border-radius: 4px; cursor: pointer; }
 .vn-input { background: var(--vn-bg); color: var(--vn-fg); border: 1px solid var(--vn-border); border-radius: 4px; padding: 6px; width: 100%; min-height: 60px; resize: vertical; font-family: inherit; }
 .vn-add { width: 100%; padding: 8px; background: var(--vn-accent); color: var(--vn-accent-fg); border: 0; border-radius: 4px; cursor: pointer; }
+.vn-panel-header-actions { display: flex; gap: 6px; align-items: center; }
+.vn-copy-transcript { white-space: nowrap; }
