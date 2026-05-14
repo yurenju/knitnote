@@ -78,7 +78,7 @@ describe('runExportForVideo with transcript', () => {
     await putScreenshot('s1', new Blob([new Uint8Array([1])], { type: 'image/png' }));
   });
 
-  it('embeds <details> in note.md when transcript exists', async () => {
+  it('embeds foldable callout in note.md when transcript exists', async () => {
     await upsertVideo(baseVideo());
     await putTranscript({
       videoId: 'abc123',
@@ -92,16 +92,16 @@ describe('runExportForVideo with transcript', () => {
     await runExportForVideo(root, 'abc123');
     const folder = root.dirs.get('2026-05-10_Hello- World--');
     const md: string = await folder.files.get('note.md').text();
-    expect(md).toContain('<details>');
+    expect(md).toContain('> [!quote]-');
     expect(md).toContain('context');
   });
 
-  it('omits <details> when no transcript exists', async () => {
+  it('omits callout when no transcript exists', async () => {
     await upsertVideo(baseVideo());
     const root = new FakeDir('root') as any;
     await runExportForVideo(root, 'abc123');
     const folder = root.dirs.get('2026-05-10_Hello- World--');
     const md: string = await folder.files.get('note.md').text();
-    expect(md).not.toContain('<details>');
+    expect(md).not.toContain('[!quote]');
   });
 });
