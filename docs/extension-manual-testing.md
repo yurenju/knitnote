@@ -11,38 +11,26 @@ and YouTube using XHR not fetch for `/api/timedtext`.
 
 ## Setup (once)
 
-`.playwright-cli/config.json` already exists in this repo:
-
-```json
-{
-  "browser": {
-    "browserName": "chromium",
-    "launchOptions": {
-      "headless": false,
-      "args": [
-        "--disable-extensions-except=dist",
-        "--load-extension=dist"
-      ]
-    }
-  }
-}
-```
+`.playwright-cli/config.json` is generated from
+`.playwright-cli/config.template.json` (committed) by
+`scripts/setup-playwright-cli.mjs`, which substitutes `{{DIST_PATH}}` with
+the absolute path to this checkout's `dist/`. The generator runs
+automatically on `npm run build` (via the `prebuild` hook), and you can
+run it standalone any time with `npm run pw:setup`. The generated
+`config.json` is gitignored — it's machine-specific by design and works
+the same from any worktree without manual edits.
 
 Two non-obvious requirements:
 
-1. **No `channel: 'chrome'`** — must use Playwright's bundled chromium.
-   Real Chrome silently drops `--load-extension` under Playwright control.
+1. **No `channel: 'chrome'`** in the template — must use Playwright's
+   bundled chromium. Real Chrome silently drops `--load-extension` under
+   Playwright control.
 2. **playwright-cli's chromium must be installed**:
    `npx playwright-cli install-browser chromium` (one-off, ~110 MB).
-3. **Run playwright-cli from the repo root** — the extension paths above
-   are relative to the working directory.
-4. **In a git worktree, the relative `dist` path does not resolve** — Chromium
-   inherits its own binary directory as CWD, so it looks for `dist` next to
-   `chrome.exe` and fails with "資訊清單檔案遺失" (manifest missing). Before
-   launching, temporarily replace `dist` in `.playwright-cli/config.json` with
-   the worktree's absolute `dist` path (`pwd` + `/dist`). Revert before
-   committing — the relative form is correct for the main repo and we don't
-   want a worktree-specific path baked into the shared config.
+3. **Build `dist/` before launching** — `npx playwright-cli` loads the
+   extension from the absolute path baked into `config.json`. If you
+   haven't run `npm run build` yet, the directory won't exist and Chromium
+   will error with "資訊清單檔案遺失" (manifest missing).
 
 ## Workflow
 

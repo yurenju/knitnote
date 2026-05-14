@@ -6,4 +6,4 @@ dist/
 test-results/
 .claude/
 .playwright-cli/*
-!.playwright-cli/config.json
+!.playwright-cli/config.template.json
