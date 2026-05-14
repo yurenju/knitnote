@@ -11,31 +11,26 @@ and YouTube using XHR not fetch for `/api/timedtext`.
 
 ## Setup (once)
 
-`.playwright-cli/config.json` already exists in this repo:
-
-```json
-{
-  "browser": {
-    "browserName": "chromium",
-    "launchOptions": {
-      "headless": false,
-      "args": [
-        "--disable-extensions-except=dist",
-        "--load-extension=dist"
-      ]
-    }
-  }
-}
-```
+`.playwright-cli/config.json` is generated from
+`.playwright-cli/config.template.json` (committed) by
+`scripts/setup-playwright-cli.mjs`, which substitutes `{{DIST_PATH}}` with
+the absolute path to this checkout's `dist/`. The generator runs
+automatically on `npm run build` (via the `prebuild` hook), and you can
+run it standalone any time with `npm run pw:setup`. The generated
+`config.json` is gitignored — it's machine-specific by design and works
+the same from any worktree without manual edits.
 
 Two non-obvious requirements:
 
-1. **No `channel: 'chrome'`** — must use Playwright's bundled chromium.
-   Real Chrome silently drops `--load-extension` under Playwright control.
+1. **No `channel: 'chrome'`** in the template — must use Playwright's
+   bundled chromium. Real Chrome silently drops `--load-extension` under
+   Playwright control.
 2. **playwright-cli's chromium must be installed**:
    `npx playwright-cli install-browser chromium` (one-off, ~110 MB).
-3. **Run playwright-cli from the repo root** — the extension paths above
-   are relative to the working directory.
+3. **Build `dist/` before launching** — `npx playwright-cli` loads the
+   extension from the absolute path baked into `config.json`. If you
+   haven't run `npm run build` yet, the directory won't exist and Chromium
+   will error with "資訊清單檔案遺失" (manifest missing).
 
 ## Workflow
 
@@ -164,6 +159,20 @@ sleep 2
 npx playwright-cli console 2>&1 | grep "captured timedtext"
 # expect: [LOG] [knitnote] captured timedtext base URL for video <id>
 ```
+
+## Copy-transcript button
+
+1. Open a video with a transcript → toggle the panel → click the 📋 button
+2. Button should briefly show `⏳`, then `✓ 已複製 N 段` for ~1.5s, then revert
+3. Paste into a text editor; verify the format:
+   - `# <title>` / `頻道: ...` / `網址: ...` header, blank line
+   - One `[HH:MM:SS] text` line per segment
+4. Open a video without a transcript (e.g. some Shorts) → click 📋 → button
+   should show `⚠️ 此影片無逐字稿` for ~2.5s
+
+If the button stays in `⏳`, check the console for `[knitnote]` errors —
+likely YouTube changed the transcript panel DOM and the selectors in
+`src/content/transcript-dom-scraper.ts` need updating.
 
 ## Cleanup
 

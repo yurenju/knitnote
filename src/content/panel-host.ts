@@ -6,6 +6,8 @@ import { getSettings } from '../shared/storage';
 import panelCss from '../ui/panel.css?raw';
 import { findVideoElement } from './yt-navigation';
 import { captureAndCrop } from './screenshot-client';
+import { scrapeTranscript } from './transcript-dom-scraper';
+import { formatForClipboard } from '../shared/transcript-clipboard';
 
 const HOST_ID = 'knitnote-panel-host';
 
@@ -58,6 +60,18 @@ export async function mountPanel(videoId: string): Promise<void> {
     },
     seekVideo: (sec) => { const v = findVideoElement(); if (v) v.currentTime = sec; },
     captureScreenshot: () => captureAndCrop(),
+    copyTranscript: async () => {
+      const result = await scrapeTranscript();
+      if (result.status !== 'ok') return { status: result.status };
+      const text = formatForClipboard(deps.getVideoMeta(), result.segments);
+      try {
+        await navigator.clipboard.writeText(text);
+        return { status: 'ok', count: result.segments.length };
+      } catch (err) {
+        console.warn('[knitnote] clipboard write failed:', err);
+        return { status: 'error' };
+      }
+    },
     onClose: () => unmountPanel()
   };
 

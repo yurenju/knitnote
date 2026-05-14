@@ -4,8 +4,8 @@
     "launchOptions": {
       "headless": false,
       "args": [
-        "--disable-extensions-except=dist",
-        "--load-extension=dist"
+        "--disable-extensions-except={{DIST_PATH}}",
+        "--load-extension={{DIST_PATH}}"
       ]
     }
   }

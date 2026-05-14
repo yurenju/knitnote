@@ -26,12 +26,21 @@ export interface PanelDeps {
   playVideo: () => void;
   seekVideo: (sec: number) => void;
   captureScreenshot: () => Promise<Blob>;
+  copyTranscript: () => Promise<{ status: 'ok' | 'unavailable' | 'timeout' | 'error'; count?: number }>;
   onClose: () => void;
 }
 
 type Mode = { kind: 'list' } | { kind: 'new' } | { kind: 'edit'; id: string };
 
-export function Panel({ videoId, getVideoMeta, getCurrentSec, pauseVideo, playVideo, seekVideo, captureScreenshot, onClose }: PanelDeps) {
+type CopyState =
+  | { kind: 'idle' }
+  | { kind: 'copying' }
+  | { kind: 'ok'; count: number }
+  | { kind: 'unavailable' }
+  | { kind: 'timeout' }
+  | { kind: 'error' };
+
+export function Panel({ videoId, getVideoMeta, getCurrentSec, pauseVideo, playVideo, seekVideo, captureScreenshot, copyTranscript, onClose }: PanelDeps) {
   const [video, setVideo] = useState<Video | null>(null);
   const [mode, setMode] = useState<Mode>({ kind: 'list' });
   // True when we paused the video on entering 'new' mode (so we resume
@@ -52,6 +61,50 @@ export function Panel({ videoId, getVideoMeta, getCurrentSec, pauseVideo, playVi
     chrome.storage.onChanged.addListener(listener);
     return () => chrome.storage.onChanged.removeListener(listener);
   }, [load]);
+
+  const [copyState, setCopyState] = useState<CopyState>({ kind: 'idle' });
+  const copyTimerRef = useRef<number | null>(null);
+  const isMountedRef = useRef(true);
+
+  useEffect(() => {
+    return () => {
+      isMountedRef.current = false;
+      if (copyTimerRef.current !== null) clearTimeout(copyTimerRef.current);
+    };
+  }, []);
+
+  const onCopyTranscript = async () => {
+    if (copyState.kind === 'copying') return;
+    setCopyState({ kind: 'copying' });
+    const result = await copyTranscript();
+    if (!isMountedRef.current) return;
+    if (result.status === 'ok') {
+      setCopyState({ kind: 'ok', count: result.count ?? 0 });
+      scheduleResetCopyState(1500);
+    } else {
+      setCopyState({ kind: result.status });
+      scheduleResetCopyState(2500);
+    }
+  };
+
+  const scheduleResetCopyState = (ms: number) => {
+    if (copyTimerRef.current !== null) clearTimeout(copyTimerRef.current);
+    copyTimerRef.current = window.setTimeout(() => {
+      setCopyState({ kind: 'idle' });
+      copyTimerRef.current = null;
+    }, ms);
+  };
+
+  const copyButtonLabel = (() => {
+    switch (copyState.kind) {
+      case 'idle': return '📋';
+      case 'copying': return '⏳';
+      case 'ok': return `✓ 已複製 ${copyState.count} 段`;
+      case 'unavailable': return '⚠️ 此影片無逐字稿';
+      case 'timeout': return '⚠️ 載入逾時,請重試';
+      case 'error': return '⚠️ 複製失敗';
+    }
+  })();
 
   const startNew = () => {
     wasPlayingRef.current = pauseVideo();
@@ -157,7 +210,17 @@ export function Panel({ videoId, getVideoMeta, getCurrentSec, pauseVideo, playVi
     >
       <div class="vn-panel-header">
         <strong>📝 {video && video.notes.length > 0 ? `${video.notes.length} 條筆記` : 'KnitNote'}</strong>
-        <button class="vn-btn-secondary" onClick={onClose}>✕</button>
+        <div class="vn-panel-header-actions">
+          <button
+            class="vn-btn-secondary vn-copy-transcript"
+            onClick={onCopyTranscript}
+            disabled={copyState.kind === 'copying'}
+            title="複製逐字稿到剪貼簿"
+          >
+            {copyButtonLabel}
+          </button>
+          <button class="vn-btn-secondary" onClick={onClose}>✕</button>
+        </div>
       </div>
 
       {mode.kind === 'new' && (

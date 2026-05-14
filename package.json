@@ -11,8 +11,10 @@
     "typecheck": "tsc --noEmit",
     "dev": "vite",
     "build": "vite build",
+    "prebuild": "node scripts/setup-playwright-cli.mjs",
     "test:watch": "vitest",
-    "e2e": "playwright test"
+    "e2e": "playwright test",
+    "pw:setup": "node scripts/setup-playwright-cli.mjs"
   },
   "keywords": [],
   "author": "",
