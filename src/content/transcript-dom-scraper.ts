@@ -38,7 +38,7 @@ export async function scrapeTranscript(): Promise<ScrapeResult> {
     closeBtn?.click();
   }
 
-  if (segments.length === 0) return { status: 'timeout' };
+  if (segments.length === 0) return { status: 'unavailable' };
   return { status: 'ok', segments };
 }
 
