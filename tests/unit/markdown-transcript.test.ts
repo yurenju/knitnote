@@ -36,41 +36,41 @@ const transcript: TranscriptRecord = {
 };
 
 describe('renderNoteMd with transcript', () => {
-  it('renders <details> block between screenshot and note text', () => {
+  it('renders foldable callout between screenshot and note text', () => {
     const md = renderNoteMd(video, '2026-05-10T01:00:00Z', { abc: transcript }, { beforeSec: 20, afterSec: 20 });
     const idxImg = md.indexOf('![](assets/');
-    const idxDetails = md.indexOf('<details>');
+    const idxCallout = md.indexOf('> [!quote]-');
     const idxNote = md.indexOf('> my note');
     expect(idxImg).toBeGreaterThan(0);
-    expect(idxDetails).toBeGreaterThan(idxImg);
-    expect(idxNote).toBeGreaterThan(idxDetails);
+    expect(idxCallout).toBeGreaterThan(idxImg);
+    expect(idxNote).toBeGreaterThan(idxCallout);
   });
 
-  it('summary shows aligned range and language', () => {
+  it('callout title shows aligned range and language', () => {
     const md = renderNoteMd(video, '2026-05-10T01:00:00Z', { abc: transcript }, { beforeSec: 20, afterSec: 20 });
-    expect(md).toContain('<summary>逐字稿 00:02:50 – 00:03:17（zh-TW）</summary>');
+    expect(md).toContain('> [!quote]- 逐字稿 00:02:50 – 00:03:17（zh-TW）');
   });
 
-  it('uses languageCode in summary when no translation', () => {
+  it('uses languageCode in callout title when no translation', () => {
     const native: TranscriptRecord = { ...transcript, translationLanguage: null };
     const md = renderNoteMd(video, '2026-05-10T01:00:00Z', { abc: native }, { beforeSec: 20, afterSec: 20 });
     expect(md).toContain('（en）');
   });
 
-  it('omits <details> entirely when transcript missing', () => {
+  it('omits callout entirely when transcript missing', () => {
     const md = renderNoteMd(video, '2026-05-10T01:00:00Z', {}, { beforeSec: 20, afterSec: 20 });
-    expect(md).not.toContain('<details>');
+    expect(md).not.toContain('[!quote]');
   });
 
-  it('omits <details> when status=unavailable', () => {
+  it('omits callout when status=unavailable', () => {
     const u: TranscriptRecord = { ...transcript, status: 'unavailable', segments: [] };
     const md = renderNoteMd(video, '2026-05-10T01:00:00Z', { abc: u }, { beforeSec: 20, afterSec: 20 });
-    expect(md).not.toContain('<details>');
+    expect(md).not.toContain('[!quote]');
   });
 
-  it('omits <details> when window catches no segments', () => {
+  it('omits callout when window catches no segments', () => {
     const empty: TranscriptRecord = { ...transcript, segments: [{ startSec: 9999, durationSec: 1, text: 'far' }] };
     const md = renderNoteMd(video, '2026-05-10T01:00:00Z', { abc: empty }, { beforeSec: 20, afterSec: 20 });
-    expect(md).not.toContain('<details>');
+    expect(md).not.toContain('[!quote]');
   });
 });

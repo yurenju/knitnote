@@ -83,10 +83,7 @@ function renderTranscriptDetails(
   const end = formatColon(sliced.alignedEndSec);
   const body = sliced.segments.map(s => s.text).join(' ').trim();
   return [
-    `<details><summary>逐字稿 ${start} – ${end}（${lang}）</summary>`,
-    '',
-    body,
-    '',
-    '</details>'
+    `> [!quote]- 逐字稿 ${start} – ${end}（${lang}）`,
+    blockquote(body)
   ].join('\n');
 }
