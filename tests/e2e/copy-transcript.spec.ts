@@ -10,12 +10,11 @@ test('copy transcript button copies text to clipboard', async ({ context, extens
   await page.goto('https://www.youtube.com/watch?v=dQw4w9WgXcQ');
   await page.waitForSelector('#movie_player video');
 
-  // Wait for the MAIN-world hook to capture the timedtext URL before proceeding.
-  // YouTube's transcript engagement panel (target-id="PAmodern_transcript_view")
-  // uses transcript-segment-view-model elements; the scraper clicks the
-  // "顯示轉錄稿" button in ytd-video-description-transcript-section-renderer
-  // to open it. Give the player time to load and fire the timedtext request.
-  await page.waitForTimeout(5000);
+  // Wait for the description-transcript-section-renderer to appear, which contains
+  // the "Show transcript" button that the scraper will click.
+  await page.waitForFunction(() => {
+    return !!document.querySelector('ytd-video-description-transcript-section-renderer button');
+  }, { timeout: 10_000 });
 
   await extensionWorker.evaluate(async () => {
     const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
