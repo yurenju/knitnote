@@ -8,21 +8,32 @@ export type ScrapeResult =
 const SHOW_BUTTON_SELECTORS = [
   'ytd-video-description-transcript-section-renderer button',
   'button[aria-label*="transcript" i]',
+  // YouTube (zh-TW) uses "顯示轉錄稿"; "逐字稿" is an older label
+  'button[aria-label*="轉錄稿"]',
   'button[aria-label*="逐字稿"]'
 ];
 
-const PANEL_SELECTOR = 'ytd-transcript-renderer';
-const SEGMENT_SELECTOR = 'ytd-transcript-segment-renderer';
-const TIMESTAMP_SELECTOR = '.segment-timestamp';
-const TEXT_SELECTOR = '.segment-text';
+// YouTube migrated from ytd-transcript-renderer / ytd-transcript-segment-renderer
+// to transcript-segment-view-model elements inside an engagement panel in 2025.
+const PANEL_SELECTOR =
+  'ytd-engagement-panel-section-list-renderer[target-id="PAmodern_transcript_view"]';
+const SEGMENT_SELECTOR = 'transcript-segment-view-model';
+const TIMESTAMP_SELECTOR = '.ytwTranscriptSegmentViewModelTimestamp';
+const TEXT_SELECTOR = 'span.ytAttributedStringHost';
 
-const PANEL_RENDER_TIMEOUT_MS = 5000;
+const PANEL_RENDER_TIMEOUT_MS = 8000;
+// Attribute value when the engagement panel is visible.
+const PANEL_EXPANDED_ATTR = 'ENGAGEMENT_PANEL_VISIBILITY_EXPANDED';
+// Close button inside the transcript engagement panel header.
+const PANEL_CLOSE_SELECTOR = `${PANEL_SELECTOR} button[aria-label*="關閉"], ${PANEL_SELECTOR} button[aria-label*="close" i]`;
 
 export async function scrapeTranscript(): Promise<ScrapeResult> {
   const button = findShowTranscriptButton();
   if (!button) return { status: 'unavailable' };
 
-  const panelWasOpen = !!document.querySelector(PANEL_SELECTOR);
+  const panel = document.querySelector(PANEL_SELECTOR);
+  const panelWasOpen =
+    panel?.getAttribute('visibility') === PANEL_EXPANDED_ATTR;
 
   if (!panelWasOpen) {
     button.click();
@@ -33,8 +44,8 @@ export async function scrapeTranscript(): Promise<ScrapeResult> {
   const segments = readSegments();
 
   if (!panelWasOpen) {
-    // Same button toggles the transcript panel; close it after scraping.
-    const closeBtn = findShowTranscriptButton();
+    // Close the engagement panel via its own close button.
+    const closeBtn = document.querySelector(PANEL_CLOSE_SELECTOR) as HTMLButtonElement | null;
     closeBtn?.click();
   }
 
