@@ -32,6 +32,14 @@ export interface PanelDeps {
 
 type Mode = { kind: 'list' } | { kind: 'new' } | { kind: 'edit'; id: string };
 
+type CopyState =
+  | { kind: 'idle' }
+  | { kind: 'copying' }
+  | { kind: 'ok'; count: number }
+  | { kind: 'unavailable' }
+  | { kind: 'timeout' }
+  | { kind: 'error' };
+
 export function Panel({ videoId, getVideoMeta, getCurrentSec, pauseVideo, playVideo, seekVideo, captureScreenshot, copyTranscript, onClose }: PanelDeps) {
   const [video, setVideo] = useState<Video | null>(null);
   const [mode, setMode] = useState<Mode>({ kind: 'list' });
@@ -54,19 +62,13 @@ export function Panel({ videoId, getVideoMeta, getCurrentSec, pauseVideo, playVi
     return () => chrome.storage.onChanged.removeListener(listener);
   }, [load]);
 
-  type CopyState =
-    | { kind: 'idle' }
-    | { kind: 'copying' }
-    | { kind: 'ok'; count: number }
-    | { kind: 'unavailable' }
-    | { kind: 'timeout' }
-    | { kind: 'error' };
-
   const [copyState, setCopyState] = useState<CopyState>({ kind: 'idle' });
   const copyTimerRef = useRef<number | null>(null);
+  const isMountedRef = useRef(true);
 
   useEffect(() => {
     return () => {
+      isMountedRef.current = false;
       if (copyTimerRef.current !== null) clearTimeout(copyTimerRef.current);
     };
   }, []);
@@ -75,6 +77,7 @@ export function Panel({ videoId, getVideoMeta, getCurrentSec, pauseVideo, playVi
     if (copyState.kind === 'copying') return;
     setCopyState({ kind: 'copying' });
     const result = await copyTranscript();
+    if (!isMountedRef.current) return;
     if (result.status === 'ok') {
       setCopyState({ kind: 'ok', count: result.count ?? 0 });
       scheduleResetCopyState(1500);
